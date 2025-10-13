@@ -55,7 +55,7 @@ public class PortSignEntity {
     }
 
     public static Triplet<Boolean, Anchor, World> isValidPortSignWorld(World world, SignText activeText) {
-        if  (world == null || world.isClient) return new Triplet<>(false, null, world);
+        if  (world == null || world.isClient()) return new Triplet<>(false, null, world);
 
         if (!isSignPortSign(activeText)) return new Triplet<>(false, null, world);
 

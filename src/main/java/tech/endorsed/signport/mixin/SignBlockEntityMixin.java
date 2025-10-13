@@ -36,7 +36,7 @@ public abstract class SignBlockEntityMixin extends BlockEntity {
 	@Inject(at = @At("RETURN"), method = "changeText")
 	private void onSignChange(UnaryOperator<SignText> textChanger, boolean front, CallbackInfoReturnable<Boolean> cir) {
 		if (cir.isCancelled()) return;
-		if (this.getWorld() == null || this.getWorld().isClient) return;
+		if (this.getWorld() == null || this.getWorld().isClient()) return;
 
 		SignText activeText = front ? this.frontText : this.backText;
 
