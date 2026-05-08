@@ -65,6 +65,12 @@ tasks.register("checkChangelog") {
 	description = "Requires CHANGELOG.md Unreleased notes for releasable changes."
 
 	doLast {
+		def githubActor = System.getenv("GITHUB_ACTOR") ?: ""
+		if (githubActor == "dependabot[bot]") {
+			logger.lifecycle("Dependabot actor detected; changelog gate skipped.")
+			return
+		}
+
 		def gitOutput = { List<String> args ->
 			def result = providers.exec {
 				commandLine(["git"] + args)
@@ -102,6 +108,12 @@ tasks.register("checkChangelog") {
 
 		if (changedFiles.isEmpty()) {
 			logger.lifecycle("No changed files found; changelog gate skipped.")
+			return
+		}
+
+		def dependabotOnlyBranches = gitOutput(["branch", "--show-current"]).startsWith("dependabot/")
+		if (dependabotOnlyBranches) {
+			logger.lifecycle("Dependabot branch detected; changelog gate skipped.")
 			return
 		}
 
