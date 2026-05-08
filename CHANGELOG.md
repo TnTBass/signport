@@ -14,4 +14,4 @@ This project uses SemVer-style mod versions. Release entries should include the 
 - Added Gradle daemon JVM criteria, toolchain resolution, Dependabot, editor defaults, and JUnit test coverage for portal sign parsing.
 - Added a changelog capture gate for releasable changes.
 - Added a release reminder gate when unreleased changelog entries exist.
-- Skipped the changelog capture gate for Dependabot update branches.
+- Skipped the changelog capture gate for Dependabot actors and update branches.
