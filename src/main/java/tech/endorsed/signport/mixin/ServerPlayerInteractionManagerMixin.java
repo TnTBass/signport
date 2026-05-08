@@ -38,8 +38,11 @@ public class ServerPlayerInteractionManagerMixin {
             return;
         }
 
-        // If we don't teleport, we can edit the sign normally
-        if (!PortSignEntity.teleportToDestination(player, world, sign.getText(sign.isPlayerFacingFront(player)))) {
+        SignText primaryText = sign.getText(sign.isPlayerFacingFront(player));
+        SignText secondaryText = sign.isPlayerFacingFront(player) ? sign.getBackText() : sign.getFrontText();
+
+        // If neither side teleports, the sign can be edited normally.
+        if (!PortSignEntity.teleportToDestination(player, world, primaryText, secondaryText)) {
             return;
         }
 

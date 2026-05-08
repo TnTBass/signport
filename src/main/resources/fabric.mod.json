@@ -2,14 +2,14 @@
 	"schemaVersion": 1,
 	"id": "signport",
 	"version": "${version}",
-	"name": "signport",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"name": "SignPort",
+	"description": "A sign portal mod for quick travel between named anchors.",
 	"authors": [
-		"Me!"
+		"approved"
 	],
 	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"homepage": "https://github.com/approved",
+		"sources": "https://github.com/approved-mc-mods/signport"
 	},
 	"license": "LGPLv3",
 	"icon": "assets/signport/icon.png",
@@ -25,7 +25,7 @@
 	"depends": {
 		"fabricloader": ">=0.14.21",
 		"minecraft": ">=1.21.10",
-		"java": ">=21",
+		"java": ">=25",
 		"fabric-api": "*"
 	}
 }

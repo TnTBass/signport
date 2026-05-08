@@ -7,7 +7,6 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.MutableText;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;
 import net.minecraft.world.World;
 import oshi.util.tuples.Triplet;
@@ -17,21 +16,38 @@ import java.util.EnumSet;
 
 public class PortSignEntity {
     public static boolean teleportToDestination(ServerPlayerEntity entity, World world, SignText activeText) {
-        // Check if either sides are valid
-        Triplet<Boolean, Anchor, World> foundAnchor = isValidPortSignWorld(world, activeText);
-        if (!foundAnchor.getA()) {
-            foundAnchor = isValidPortSignWorld(world, activeText);
-            if (!foundAnchor.getA()) {
-                updatePortLink(activeText, false);
-                return false;
+        return teleportToDestination(entity, world, activeText, null);
+    }
+
+    public static boolean teleportToDestination(ServerPlayerEntity entity, World world, SignText primaryText, SignText secondaryText) {
+        Triplet<Boolean, Anchor, World> foundAnchor = isValidPortSignWorld(world, primaryText);
+        if (foundAnchor.getA()) {
+            updatePortLink(primaryText, true);
+            teleportToAnchor(entity, foundAnchor);
+            return true;
+        }
+
+        if (secondaryText != null && secondaryText != primaryText) {
+            foundAnchor = isValidPortSignWorld(world, secondaryText);
+            if (foundAnchor.getA()) {
+                updatePortLink(secondaryText, true);
+                teleportToAnchor(entity, foundAnchor);
+                return true;
             }
         }
 
-        if (foundAnchor.getC() == null) return false;
-        updatePortLink(activeText, true);
+        updatePortLink(primaryText, false);
+        if (secondaryText != null && secondaryText != primaryText) {
+            updatePortLink(secondaryText, false);
+        }
+
+        return false;
+    }
+
+    private static void teleportToAnchor(ServerPlayerEntity entity, Triplet<Boolean, Anchor, World> foundAnchor) {
+        if (foundAnchor.getC() == null) return;
 
         Anchor anchor = foundAnchor.getB();
-
         entity.teleport((ServerWorld) foundAnchor.getC(),
                 anchor.pos.getX(),
                 anchor.pos.getY(),
@@ -40,13 +56,12 @@ public class PortSignEntity {
                 entity.getYaw(),
                 entity.getPitch(),
                 false);
-
-        return true;
     }
 
     public static boolean isSignPortSign(SignText activeText) {
-        String line1 = activeText.getMessage(1, false).getString();
-        return line1.equalsIgnoreCase("[sp]") || line1.equalsIgnoreCase("[signport]");
+        if (activeText == null) return false;
+
+        return PortSignFormat.isPortalMarker(activeText.getMessage(1, false).getString());
     }
 
     public static Pair<Boolean, Anchor> isValidPortSign(World world, SignText activeText) {
@@ -59,7 +74,7 @@ public class PortSignEntity {
 
         if (!isSignPortSign(activeText)) return new Triplet<>(false, null, world);
 
-        String line2 = activeText.getMessage(2, false).getString();
+        String line2 = PortSignFormat.normalizeLine(activeText.getMessage(2, false).getString());
 
         AnchorState state = AnchorState.getServerState((ServerWorld) world);
         if (state == null) return new Triplet<>(false, null, world);
@@ -70,9 +85,11 @@ public class PortSignEntity {
             }
         }
 
-        String line3 = activeText.getMessage(3, false).getString();
-        ServerWorld dimensionWorld = world.getServer().getWorld(RegistryKey.of(RegistryKeys.WORLD, Identifier.of(line3)));
-        assert dimensionWorld != null;
+        var dimensionId = PortSignFormat.parseDimensionId(activeText.getMessage(3, false).getString());
+        if (dimensionId == null) return new Triplet<>(false, null, world);
+
+        ServerWorld dimensionWorld = world.getServer().getWorld(RegistryKey.of(RegistryKeys.WORLD, dimensionId));
+        if (dimensionWorld == null) return new Triplet<>(false, null, world);
 
         // Checking for interdimensional teleports
         AnchorState dimensionalAnchorState = AnchorState.getServerState(dimensionWorld);

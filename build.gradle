@@ -16,6 +16,7 @@ repositories {
 	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
 	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
 	// for more information about repositories.
+	mavenCentral()
 }
 
 loom {
@@ -38,7 +39,9 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-	
+
+	testImplementation "org.junit.jupiter:junit-jupiter:5.11.4"
+	testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
 
 processResources {
@@ -50,7 +53,138 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach {
-	it.options.release = 21
+	it.options.release = 25
+}
+
+tasks.withType(Test).configureEach {
+	useJUnitPlatform()
+}
+
+tasks.register("checkChangelog") {
+	group = "verification"
+	description = "Requires CHANGELOG.md Unreleased notes for releasable changes."
+
+	doLast {
+		def gitOutput = { List<String> args ->
+			def result = providers.exec {
+				commandLine(["git"] + args)
+				ignoreExitValue = true
+			}
+
+			return result.result.get().exitValue == 0 ? result.standardOutput.asText.get().trim() : ""
+		}
+
+		def refExists = { String ref ->
+			providers.exec {
+				commandLine("git", "rev-parse", "--verify", "--quiet", ref)
+				ignoreExitValue = true
+			}.result.get().exitValue == 0
+		}
+
+		def baseRef = System.getenv("BASE_REF") ?: System.getenv("GITHUB_BASE_REF") ?: "main"
+		def base = refExists("origin/${baseRef}") ? "origin/${baseRef}" : refExists(baseRef) ? baseRef : null
+		def mergeBase = base ? gitOutput(["merge-base", "HEAD", base]) : ""
+		if (!mergeBase) {
+			mergeBase = gitOutput(["rev-list", "--max-parents=0", "HEAD"]).readLines().first()
+		}
+
+		def changedFiles = new TreeSet<String>()
+		[
+			["diff", "--name-only", "${mergeBase}...HEAD"],
+			["diff", "--name-only"],
+			["diff", "--name-only", "--cached"],
+			["ls-files", "--others", "--exclude-standard"]
+		].each { args ->
+			gitOutput(args).readLines()
+				.findAll { it }
+				.each { changedFiles.add(it) }
+		}
+
+		if (changedFiles.isEmpty()) {
+			logger.lifecycle("No changed files found; changelog gate skipped.")
+			return
+		}
+
+		def releasablePattern = ~/^(src\/main\/|build\.gradle|settings\.gradle|gradle\.properties|gradle\/|\.github\/workflows\/|README\.md$)/
+		def releasableFiles = changedFiles.findAll { it ==~ releasablePattern || it.find(releasablePattern) }
+
+		if (releasableFiles.isEmpty()) {
+			logger.lifecycle("No releasable changes found; changelog gate skipped.")
+			return
+		}
+
+		if (!changedFiles.contains("CHANGELOG.md")) {
+			throw new GradleException("Releasable changes require a CHANGELOG.md update under Unreleased.\n\nReleasable files:\n${releasableFiles.join("\n")}")
+		}
+
+		def changelog = file("CHANGELOG.md").text.readLines()
+		def inUnreleased = false
+		def hasBullet = false
+		for (line in changelog) {
+			if (line ==~ /^##\s+Unreleased\s*$/) {
+				inUnreleased = true
+				continue
+			}
+
+			if (inUnreleased && line ==~ /^##\s+.*/) {
+				break
+			}
+
+			if (inUnreleased && line ==~ /^-\s+.*/) {
+				hasBullet = true
+			}
+		}
+
+		if (!hasBullet) {
+			throw new GradleException("CHANGELOG.md must contain at least one bullet under '## Unreleased'.")
+		}
+
+		logger.lifecycle("Changelog gate passed.")
+	}
+}
+
+tasks.named("check") {
+	dependsOn("checkChangelog")
+}
+
+tasks.register("releaseReminder") {
+	group = "verification"
+	description = "Prints a release reminder when Unreleased changelog entries exist."
+
+	doLast {
+		if (!file("CHANGELOG.md").exists()) return
+
+		def changelog = file("CHANGELOG.md").text.readLines()
+		def inUnreleased = false
+		def unreleasedEntries = []
+		for (line in changelog) {
+			if (line ==~ /^##\s+Unreleased\s*$/) {
+				inUnreleased = true
+				continue
+			}
+
+			if (inUnreleased && line ==~ /^##\s+.*/) {
+				break
+			}
+
+			if (inUnreleased && line ==~ /^-\s+.*/) {
+				unreleasedEntries.add(line)
+			}
+		}
+
+		if (unreleasedEntries.isEmpty()) return
+
+		logger.lifecycle("")
+		logger.lifecycle("Release reminder:")
+		logger.lifecycle("CHANGELOG.md has ${unreleasedEntries.size()} Unreleased entr${unreleasedEntries.size() == 1 ? "y" : "ies"}.")
+		logger.lifecycle("When this work is ready to ship, ask Codex to prep a release.")
+		logger.lifecycle("Suggested release-prep steps: choose patch/minor/major, bump mod_version, build the jar, tag the release.")
+		logger.lifecycle("")
+	}
+}
+
+tasks.named("build") {
+	finalizedBy("releaseReminder")
 }
 
 java {
@@ -59,8 +193,12 @@ java {
 	// If you remove this line, sources will not be generated.
 	withSourcesJar()
 
-	sourceCompatibility = JavaVersion.VERSION_21
-	targetCompatibility = JavaVersion.VERSION_21
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(25)
+	}
+
+	sourceCompatibility = JavaVersion.toVersion(25)
+	targetCompatibility = JavaVersion.toVersion(25)
 }
 
 jar {
