@@ -71,6 +71,13 @@ tasks.register("checkChangelog") {
 			return
 		}
 
+		def githubHeadRef = System.getenv("GITHUB_HEAD_REF") ?: ""
+		def githubRefName = System.getenv("GITHUB_REF_NAME") ?: ""
+		if (githubHeadRef.startsWith("dependabot/") || githubRefName.startsWith("dependabot/")) {
+			logger.lifecycle("Dependabot ref detected; changelog gate skipped.")
+			return
+		}
+
 		def gitOutput = { List<String> args ->
 			def result = providers.exec {
 				commandLine(["git"] + args)
