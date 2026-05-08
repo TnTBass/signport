@@ -39,6 +39,7 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+	include(modImplementation("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}"))
 
 	testImplementation "org.junit.jupiter:junit-jupiter:6.0.3"
 	testRuntimeOnly "org.junit.platform:junit-platform-launcher"

@@ -10,6 +10,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.network.ServerPlayerInteractionManager;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
@@ -19,6 +20,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import tech.endorsed.signport.permission.SignPortPermissions;
 import tech.endorsed.signport.world.PortSignEntity;
 
 @Mixin(ServerPlayerInteractionManager.class)
@@ -34,12 +36,21 @@ public class ServerPlayerInteractionManagerMixin {
                            CallbackInfoReturnable<ActionResult> cir) {
         BlockEntity blockEntity = world.getBlockEntity(hitResult.getBlockPos());
         if (!(blockEntity instanceof SignBlockEntity sign)) return;
-        if (player.hasPermissionLevel(2) && player.isInPose(EntityPose.CROUCHING)) {
+        if (SignPortPermissions.canEditSign(player) && player.isInPose(EntityPose.CROUCHING)) {
             return;
         }
 
         SignText primaryText = sign.getText(sign.isPlayerFacingFront(player));
         SignText secondaryText = sign.isPlayerFacingFront(player) ? sign.getBackText() : sign.getFrontText();
+        boolean hasPortal = PortSignEntity.isValidPortSign(world, primaryText).getLeft()
+                || PortSignEntity.isValidPortSign(world, secondaryText).getLeft();
+
+        if (hasPortal && !SignPortPermissions.canUseSign(player)) {
+            player.sendMessage(Text.literal("You do not have permissions to use port signs."), true);
+            cir.setReturnValue(ActionResult.FAIL);
+            cir.cancel();
+            return;
+        }
 
         // If neither side teleports, the sign can be edited normally.
         if (!PortSignEntity.teleportToDestination(player, world, primaryText, secondaryText)) {

@@ -54,3 +54,18 @@ Right-clicking a valid portal sign teleports the player to the named anchor. If 
 
 When a portal sign is edited, the portal marker line is colored green if the target anchor can be found and red if it cannot.
 
+## Permissions
+
+SignPort supports LuckPerms through `fabric-permissions-api`. If no permission provider is installed, SignPort falls back to vanilla operator checks.
+
+| Permission | Default |
+| --- | --- |
+| `signport.anchor.create` | operator level 2 |
+| `signport.anchor.delete` | operator level 2 |
+| `signport.anchor.list` | operator level 2 |
+| `signport.teleport.command` | everyone |
+| `signport.sign.create` | operator level 2 |
+| `signport.sign.edit` | operator level 2 |
+| `signport.sign.break` | operator level 2 |
+| `signport.sign.use` | everyone |
+

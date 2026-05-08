@@ -16,6 +16,7 @@ import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import oshi.util.tuples.Triplet;
+import tech.endorsed.signport.permission.SignPortPermissions;
 import tech.endorsed.signport.world.Anchor;
 import tech.endorsed.signport.world.AnchorState;
 
@@ -35,16 +36,19 @@ public class AnchorCommand {
         LiteralCommandNode<ServerCommandSource> literalCommandNode = dispatcher.register(
                 literal("signport")
                         .then(literal("tp")
+                            .requires(SignPortPermissions::canUseTeleportCommand)
                             .then(CommandManager.argument("name", StringArgumentType.word())
                                 .executes(context -> teleportAnchor(context.getSource(), StringArgumentType.getString(context, "name")))))
                         .then(literal("anchor")
-                                .requires(source -> source.hasPermissionLevel(2))
                                 .then(literal("list")
+                                        .requires(SignPortPermissions::canListAnchors)
                                         .executes(context -> AnchorCommand.listAnchors(context.getSource())))
                                 .then(literal("delete")
+                                        .requires(SignPortPermissions::canDeleteAnchor)
                                         .then(CommandManager.argument("name", StringArgumentType.word())
                                                 .executes(context -> AnchorCommand.deleteAnchor(context.getSource(), StringArgumentType.getString(context, "name")))))
                                 .then(literal("create")
+                                        .requires(SignPortPermissions::canCreateAnchor)
                                         .then(CommandManager.argument("name", StringArgumentType.word())
                                                 .executes(context -> AnchorCommand.createAnchor(context.getSource(), StringArgumentType.getString(context, "name"), null))
                                                 .then(CommandManager.argument("pos", BlockPosArgumentType.blockPos())

@@ -11,6 +11,7 @@ import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
+import tech.endorsed.signport.permission.SignPortPermissions;
 import tech.endorsed.signport.world.Anchor;
 import tech.endorsed.signport.world.PortSignEntity;
 
@@ -18,7 +19,7 @@ public class SignEvents implements PlayerBlockBreakEvents.Before {
     @Override
     public boolean beforeBlockBreak(World world, PlayerEntity player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity) {
         if (!(blockEntity instanceof SignBlockEntity)) return true;
-        if (player.hasPermissionLevel(2)) return true;
+        if (SignPortPermissions.canBreakSign(player)) return true;
 
         SignText front = ((SignBlockEntity) blockEntity).getFrontText();
         SignText back = ((SignBlockEntity) blockEntity).getBackText();
