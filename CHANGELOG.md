@@ -6,6 +6,8 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
+## 1.1.0+mc1.21.10 - 2026-05-08
+
 - Added LuckPerms-compatible permission checks through `fabric-permissions-api`.
 - Added permission nodes for anchor commands, portal sign creation/editing/breaking, portal sign use, and `/signport tp`.
 
