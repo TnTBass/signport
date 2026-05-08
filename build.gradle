@@ -139,7 +139,12 @@ tasks.register("checkChangelog") {
 		def changelog = file("CHANGELOG.md").text.readLines()
 		def inUnreleased = false
 		def hasBullet = false
+		def hasReleaseSection = false
 		for (line in changelog) {
+			if (line ==~ /^##\s+\d+\.\d+\.\d+.*$/) {
+				hasReleaseSection = true
+			}
+
 			if (line ==~ /^##\s+Unreleased\s*$/) {
 				inUnreleased = true
 				continue
@@ -154,8 +159,8 @@ tasks.register("checkChangelog") {
 			}
 		}
 
-		if (!hasBullet) {
-			throw new GradleException("CHANGELOG.md must contain at least one bullet under '## Unreleased'.")
+		if (!hasBullet && !hasReleaseSection) {
+			throw new GradleException("CHANGELOG.md must contain at least one bullet under '## Unreleased' or a versioned release section.")
 		}
 
 		logger.lifecycle("Changelog gate passed.")

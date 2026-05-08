@@ -6,6 +6,8 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
+## 1.0.1+mc1.21.10 - 2026-05-08
+
 - Updated mod metadata and project attribution.
 - Documented commands, portal sign format, dimension support, and front/back sign behavior.
 - Made invalid or blank dimension IDs fail gracefully instead of crashing portal sign resolution.
@@ -15,3 +17,5 @@ This project uses SemVer-style mod versions. Release entries should include the 
 - Added a changelog capture gate for releasable changes.
 - Added a release reminder gate when unreleased changelog entries exist.
 - Skipped the changelog capture gate for Dependabot actors and update branches.
+- Updated Gradle, GitHub Actions, and JUnit dependencies through Dependabot.
+- Allowed versioned release sections to satisfy the changelog capture gate during release prep.
