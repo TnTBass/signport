@@ -6,6 +6,7 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
+- Added Modrinth publication to the tag-triggered release workflow and a source hygiene gate to keep it wired in.
 - Added mechanical source hygiene gates for unit-test companions, wrapper checksum hardening, and obvious duplicate portal validation.
 - Added checksum verification for the Gradle wrapper distribution.
 - Reused resolved portal-sign destinations during interaction handling and added indexed anchor lookup helpers.

@@ -41,7 +41,6 @@ replay_*.log
 
 # local publishing prep
 docs/modrinth-*
-scripts/upload-modrinth.ps1
 
 # local workspace notes and runtime logs
 prompts/

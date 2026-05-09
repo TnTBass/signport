@@ -70,3 +70,15 @@ jobs:
             "build/libs/signport-${version}-sources.jar" \
             --title "${GITHUB_REF_NAME}" \
             "${notes_args[@]}"
+      - name: publish modrinth release
+        shell: pwsh
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+        run: |
+          $version = $env:GITHUB_REF_NAME.Substring(1)
+          ./scripts/upload-modrinth.ps1 `
+            -Slug "modern-signport" `
+            -Version $version `
+            -JarPath "build/libs/signport-$version.jar" `
+            -SourcesJarPath "build/libs/signport-$version-sources.jar" `
+            -ChangelogPath "release-notes.md"

@@ -237,6 +237,18 @@ tasks.register("checkSourceHygiene") {
 		if (!releaseWorkflow.contains('^v[0-9]+\\.[0-9]+\\.[0-9]+\\+mc[0-9]+(\\.[0-9]+)*$')) {
 			throw new GradleException("Release workflow must validate release tags before publishing.")
 		}
+		if (!releaseWorkflow.contains("publish modrinth release")
+				|| !releaseWorkflow.contains("MODRINTH_TOKEN")
+				|| !releaseWorkflow.contains("./scripts/upload-modrinth.ps1")) {
+			throw new GradleException("Release workflow must publish each release build to Modrinth after creating the GitHub Release.")
+		}
+
+		def modrinthUploadScript = file("scripts/upload-modrinth.ps1").text
+		if (!modrinthUploadScript.contains("https://api.modrinth.com/v2/version")
+				|| !modrinthUploadScript.contains("MODRINTH_TOKEN")
+				|| modrinthUploadScript.contains("https://api.modrinth.com/v2/project\"")) {
+			throw new GradleException("Modrinth upload script must publish versions to an existing project using MODRINTH_TOKEN.")
+		}
 
 		[buildWorkflow, releaseWorkflow].each { workflowText ->
 			def mutableActionRef = workflowText.readLines().find { line ->
