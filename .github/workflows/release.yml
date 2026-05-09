@@ -1,0 +1,72 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+      - name: validate gradle wrapper
+        uses: gradle/actions/wrapper-validation@39fdf500b386709a9a4a769f717dad447ac345b9 # v6
+      - name: setup jdk
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
+        with:
+          java-version: 25
+          distribution: 'microsoft'
+      - name: setup gradle
+        uses: gradle/actions/setup-gradle@39fdf500b386709a9a4a769f717dad447ac345b9 # v6
+      - name: make gradle wrapper executable
+        run: chmod +x ./gradlew
+      - name: build
+        run: ./gradlew build
+      - name: validate release tag
+        run: |
+          if [[ ! "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+\+mc[0-9]+(\.[0-9]+)*$ ]]; then
+            echo "Release tags must match v<major>.<minor>.<patch>+mc<mc-version>."
+            exit 1
+          fi
+      - name: verify release artifacts
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          test -f "build/libs/signport-${version}.jar"
+          test -f "build/libs/signport-${version}-sources.jar"
+      - name: extract changelog notes
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v version="$version" '
+            $0 == "## " version || $0 ~ "^## " version " - " {
+              capture = 1
+              next
+            }
+            capture && /^## / {
+              exit
+            }
+            capture {
+              print
+            }
+          ' CHANGELOG.md | sed '/^[[:space:]]*$/d' > release-notes.md
+      - name: create github release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          notes_args=(--generate-notes)
+          if [ -s release-notes.md ]; then
+            notes_args=(--notes-file release-notes.md)
+          fi
+
+          gh release create "${GITHUB_REF_NAME}" \
+            "build/libs/signport-${version}.jar" \
+            "build/libs/signport-${version}-sources.jar" \
+            --title "${GITHUB_REF_NAME}" \
+            "${notes_args[@]}"

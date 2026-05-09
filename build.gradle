@@ -168,8 +168,91 @@ tasks.register("checkChangelog") {
 	}
 }
 
+tasks.register("checkWrapperChecksum") {
+	group = "verification"
+	description = "Requires Gradle wrapper distribution checksum pinning."
+
+	doLast {
+		def wrapperProperties = file("gradle/wrapper/gradle-wrapper.properties").text
+		if (!(wrapperProperties =~ /(?m)^distributionSha256Sum=[a-f0-9]{64}$/)) {
+			throw new GradleException("gradle-wrapper.properties must pin distributionSha256Sum to the official Gradle distribution checksum.")
+		}
+
+		logger.lifecycle("Gradle wrapper checksum gate passed.")
+	}
+}
+
+tasks.register("checkUnitTestCompanions") {
+	group = "verification"
+	description = "Requires unit-test companions for pure helper/state classes."
+
+	doLast {
+		def requiredTestFiles = fileTree("src/main/java").matching {
+			include "**/*Config.java"
+			include "**/*Format.java"
+			include "**/*Resolver.java"
+			include "**/*State.java"
+		}.files.collect { mainFile ->
+			def relativePath = projectDir.toPath().relativize(mainFile.toPath()).toString().replace(File.separatorChar, '/' as char)
+			def testPath = relativePath
+					.replace("src/main/java/", "src/test/java/")
+					.replace(".java", "Test.java")
+			file(testPath)
+		}
+
+		def missing = requiredTestFiles.findAll { !it.exists() }
+		if (!missing.isEmpty()) {
+			throw new GradleException("Pure helper/state classes require companion unit tests:\n${missing.collect { projectDir.toPath().relativize(it.toPath()) }.join("\n")}")
+		}
+
+		logger.lifecycle("Unit-test companion gate passed.")
+	}
+}
+
+tasks.register("checkSourceHygiene") {
+	group = "verification"
+	description = "Checks source patterns that should not regress silently."
+
+	doLast {
+		def interactionMixin = file("src/main/java/tech/endorsed/signport/mixin/ServerPlayerInteractionManagerMixin.java").text
+		if (interactionMixin.contains("PortSignEntity.isValidPortSign(")
+				|| interactionMixin.contains("teleportToDestination(player, world,")) {
+			throw new GradleException("ServerPlayerInteractionManagerMixin should resolve a portal destination once and reuse it.")
+		}
+
+		def signEvents = file("src/main/java/tech/endorsed/signport/events/SignEvents.java").text
+		if (signEvents.contains("isValidPortSign(world")) {
+			throw new GradleException("SignEvents break protection must check portal markers, not only currently valid anchors.")
+		}
+
+		def buildWorkflow = file(".github/workflows/build.yml").text
+		if (!buildWorkflow.contains("permissions:\n  contents: read")) {
+			throw new GradleException("Build workflow must keep the GitHub token scoped to contents: read.")
+		}
+
+		def releaseWorkflow = file(".github/workflows/release.yml").text
+		if (!releaseWorkflow.contains("permissions:\n  contents: write")) {
+			throw new GradleException("Release workflow must declare the minimal write permission it needs.")
+		}
+		if (!releaseWorkflow.contains('^v[0-9]+\\.[0-9]+\\.[0-9]+\\+mc[0-9]+(\\.[0-9]+)*$')) {
+			throw new GradleException("Release workflow must validate release tags before publishing.")
+		}
+
+		[buildWorkflow, releaseWorkflow].each { workflowText ->
+			def mutableActionRef = workflowText.readLines().find { line ->
+				line ==~ /\s*uses:\s+[^#\s]+@(v\d+|[^#\s]+\/v\d+).*/
+			}
+			if (mutableActionRef != null) {
+				throw new GradleException("GitHub Actions must be pinned to commit SHAs, not mutable version tags: ${mutableActionRef.trim()}")
+			}
+		}
+
+		logger.lifecycle("Source hygiene gate passed.")
+	}
+}
+
 tasks.named("check") {
-	dependsOn("checkChangelog")
+	dependsOn("checkChangelog", "checkWrapperChecksum", "checkUnitTestCompanions", "checkSourceHygiene")
 }
 
 tasks.register("releaseReminder") {

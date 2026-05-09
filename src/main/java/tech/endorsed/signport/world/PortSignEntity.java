@@ -7,33 +7,37 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.MutableText;
+import net.minecraft.text.Text;
 import net.minecraft.util.Pair;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import oshi.util.tuples.Triplet;
-import tech.endorsed.signport.SignPort;
+import tech.endorsed.signport.config.SignPortConfig;
 
 import java.util.EnumSet;
+import java.util.Optional;
 
 public class PortSignEntity {
+    public record PortalDestination(boolean valid, Anchor anchor, World world, SignText text) {
+    }
+
     public static boolean teleportToDestination(ServerPlayerEntity entity, World world, SignText activeText) {
         return teleportToDestination(entity, world, activeText, null);
     }
 
     public static boolean teleportToDestination(ServerPlayerEntity entity, World world, SignText primaryText, SignText secondaryText) {
-        Triplet<Boolean, Anchor, World> foundAnchor = isValidPortSignWorld(world, primaryText);
-        if (foundAnchor.getA()) {
-            updatePortLink(primaryText, true);
-            teleportToAnchor(entity, foundAnchor);
-            return true;
-        }
+        return teleportToDestination(entity, resolvePortalDestination(world, primaryText, secondaryText), primaryText, secondaryText);
+    }
 
-        if (secondaryText != null && secondaryText != primaryText) {
-            foundAnchor = isValidPortSignWorld(world, secondaryText);
-            if (foundAnchor.getA()) {
-                updatePortLink(secondaryText, true);
-                teleportToAnchor(entity, foundAnchor);
-                return true;
-            }
+    public static boolean teleportToDestination(
+            ServerPlayerEntity entity,
+            PortalDestination destination,
+            SignText primaryText,
+            SignText secondaryText
+    ) {
+        if (destination.valid()) {
+            updatePortLink(destination.text(), true);
+            teleportToAnchor(entity, destination);
+            return true;
         }
 
         updatePortLink(primaryText, false);
@@ -44,14 +48,21 @@ public class PortSignEntity {
         return false;
     }
 
-    private static void teleportToAnchor(ServerPlayerEntity entity, Triplet<Boolean, Anchor, World> foundAnchor) {
-        if (foundAnchor.getC() == null) return;
+    private static void teleportToAnchor(ServerPlayerEntity entity, PortalDestination destination) {
+        if (destination.world() == null) return;
 
-        Anchor anchor = foundAnchor.getB();
-        entity.teleport((ServerWorld) foundAnchor.getC(),
-                anchor.pos.getX(),
-                anchor.pos.getY(),
-                anchor.pos.getZ(),
+        Anchor anchor = destination.anchor();
+        Optional<Vec3d> resolvedPosition = TeleportDestinationResolver.resolve(destination.world(), anchor.pos);
+        if (resolvedPosition.isEmpty()) {
+            entity.sendMessage(Text.literal("Could not find a safe destination near anchor '%s'".formatted(anchor.name)));
+            return;
+        }
+
+        Vec3d pos = resolvedPosition.get();
+        entity.teleport((ServerWorld) destination.world(),
+                pos.x,
+                pos.y,
+                pos.z,
                 EnumSet.noneOf(PositionFlag.class),
                 entity.getYaw(),
                 entity.getPitch(),
@@ -65,44 +76,53 @@ public class PortSignEntity {
     }
 
     public static Pair<Boolean, Anchor> isValidPortSign(World world, SignText activeText) {
-        Triplet<Boolean, Anchor, World> portSign = isValidPortSignWorld(world, activeText);
-        return new Pair<>(portSign.getA(), portSign.getB());
+        PortalDestination portSign = resolvePortalDestination(world, activeText);
+        return new Pair<>(portSign.valid(), portSign.anchor());
     }
 
-    public static Triplet<Boolean, Anchor, World> isValidPortSignWorld(World world, SignText activeText) {
-        if  (world == null || world.isClient()) return new Triplet<>(false, null, world);
+    public static PortalDestination resolvePortalDestination(World world, SignText activeText) {
+        if  (world == null || world.isClient()) return new PortalDestination(false, null, world, activeText);
 
-        if (!isSignPortSign(activeText)) return new Triplet<>(false, null, world);
+        if (!isSignPortSign(activeText)) return new PortalDestination(false, null, world, activeText);
 
         String line2 = PortSignFormat.normalizeLine(activeText.getMessage(2, false).getString());
 
         AnchorState state = AnchorState.getServerState((ServerWorld) world);
-        if (state == null) return new Triplet<>(false, null, world);
+        if (state == null) return new PortalDestination(false, null, world, activeText);
 
-        for (Anchor anchor: state.GetAnchors()) {
-            if (line2.equalsIgnoreCase(anchor.name)) {
-                return new Triplet<>(true, anchor, world);
-            }
+        Optional<Anchor> anchor = state.findAnchorIgnoreCase(line2);
+        if (anchor.isPresent()) {
+            return new PortalDestination(true, anchor.get(), world, activeText);
+        }
+
+        if (!SignPortConfig.get().crossDimensionPortalSigns()) {
+            return new PortalDestination(false, null, world, activeText);
         }
 
         var dimensionId = PortSignFormat.parseDimensionId(activeText.getMessage(3, false).getString());
-        if (dimensionId == null) return new Triplet<>(false, null, world);
+        if (dimensionId == null) return new PortalDestination(false, null, world, activeText);
 
         ServerWorld dimensionWorld = world.getServer().getWorld(RegistryKey.of(RegistryKeys.WORLD, dimensionId));
-        if (dimensionWorld == null) return new Triplet<>(false, null, world);
+        if (dimensionWorld == null) return new PortalDestination(false, null, world, activeText);
 
-        // Checking for interdimensional teleports
         AnchorState dimensionalAnchorState = AnchorState.getServerState(dimensionWorld);
-        if (dimensionalAnchorState == null) return new Triplet<>(false, null, world);
+        if (dimensionalAnchorState == null) return new PortalDestination(false, null, world, activeText);
 
-        for (Anchor anchor: dimensionalAnchorState.GetAnchors()) {
-            if (line2.equalsIgnoreCase(anchor.name)) {
-                // Found interdimensional teleport
-                return new Triplet<>(true, anchor, dimensionWorld);
-            }
+        Optional<Anchor> dimensionalAnchor = dimensionalAnchorState.findAnchorIgnoreCase(line2);
+        if (dimensionalAnchor.isPresent()) {
+            return new PortalDestination(true, dimensionalAnchor.get(), dimensionWorld, activeText);
         }
 
-        return new Triplet<>(false, null, world);
+        return new PortalDestination(false, null, world, activeText);
+    }
+
+    public static PortalDestination resolvePortalDestination(World world, SignText primaryText, SignText secondaryText) {
+        PortalDestination destination = resolvePortalDestination(world, primaryText);
+        if (destination.valid() || secondaryText == null || secondaryText == primaryText) {
+            return destination;
+        }
+
+        return resolvePortalDestination(world, secondaryText);
     }
 
     public static void updatePortLink(SignText activeText, boolean foundAnchor) {

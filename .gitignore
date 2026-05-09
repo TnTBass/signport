@@ -38,3 +38,11 @@ hs_err_*.log
 replay_*.log
 *.hprof
 *.jfr
+
+# local publishing prep
+docs/modrinth-*
+scripts/upload-modrinth.ps1
+
+# local workspace notes and runtime logs
+prompts/
+logs/

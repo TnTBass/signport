@@ -42,10 +42,9 @@ public class ServerPlayerInteractionManagerMixin {
 
         SignText primaryText = sign.getText(sign.isPlayerFacingFront(player));
         SignText secondaryText = sign.isPlayerFacingFront(player) ? sign.getBackText() : sign.getFrontText();
-        boolean hasPortal = PortSignEntity.isValidPortSign(world, primaryText).getLeft()
-                || PortSignEntity.isValidPortSign(world, secondaryText).getLeft();
+        PortSignEntity.PortalDestination destination = PortSignEntity.resolvePortalDestination(world, primaryText, secondaryText);
 
-        if (hasPortal && !SignPortPermissions.canUseSign(player)) {
+        if (destination.valid() && !SignPortPermissions.canUseSign(player)) {
             player.sendMessage(Text.literal("You do not have permissions to use port signs."), true);
             cir.setReturnValue(ActionResult.FAIL);
             cir.cancel();
@@ -53,7 +52,7 @@ public class ServerPlayerInteractionManagerMixin {
         }
 
         // If neither side teleports, the sign can be edited normally.
-        if (!PortSignEntity.teleportToDestination(player, world, primaryText, secondaryText)) {
+        if (!PortSignEntity.teleportToDestination(player, destination, primaryText, secondaryText)) {
             return;
         }
 

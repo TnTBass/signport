@@ -6,7 +6,16 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
+- Added mechanical source hygiene gates for unit-test companions, wrapper checksum hardening, and obvious duplicate portal validation.
+- Added checksum verification for the Gradle wrapper distribution.
+- Reused resolved portal-sign destinations during interaction handling and added indexed anchor lookup helpers.
+- Protected portal-marker signs from unauthorized break attempts even when their target anchor is currently invalid or missing.
+- Hardened GitHub Actions permissions and release tag validation.
+- Added a tag-triggered GitHub Release workflow that builds with Java 25, uses changelog notes, and attaches the mod and sources jars.
+- Added `config/signport.json` for permission fallback defaults, protected-action op level, cross-dimension portal signs, and safe teleport search.
+- Made sign and `/signport tp` teleports search for a safe centered destination near the anchor and fail gracefully when none is available.
 - Added an in-game validation checklist for SignPort permission and portal behavior.
+- Updated source links for the public SignPort repository and Modrinth listing prep.
 
 ## 1.1.0+mc1.21.10 - 2026-05-08
 

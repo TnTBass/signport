@@ -9,7 +9,7 @@
 	],
 	"contact": {
 		"homepage": "https://github.com/approved",
-		"sources": "https://github.com/approved-mc-mods/signport"
+		"sources": "https://github.com/TnTBass/signport"
 	},
 	"license": "LGPLv3",
 	"icon": "assets/signport/icon.png",

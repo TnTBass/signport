@@ -52,6 +52,8 @@ minecraft:the_nether
 
 Right-clicking a valid portal sign teleports the player to the named anchor. If the side facing the player is not a valid portal, SignPort checks the other side before falling back to normal sign interaction.
 
+Teleport destinations are resolved to a safe standing position at or near the anchor. SignPort centers the player horizontally on the destination block, avoids solid or harmful foot/head spaces, and cancels the teleport with a message if no nearby safe position can be found.
+
 When a portal sign is edited, the portal marker line is colored green if the target anchor can be found and red if it cannot.
 
 ## Permissions
@@ -69,3 +71,27 @@ SignPort supports LuckPerms through `fabric-permissions-api`. If no permission p
 | `signport.sign.break` | operator level 2 |
 | `signport.sign.use` | everyone |
 
+## Configuration
+
+On first server start, SignPort creates `config/signport.json` with the default policy values.
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `teleportCommandDefault` | `true` | Vanilla fallback for `signport.teleport.command`; `true` allows everyone when no permission provider overrides it. |
+| `signUseDefault` | `true` | Vanilla fallback for `signport.sign.use`; `true` allows everyone when no permission provider overrides it. |
+| `protectedActionOpLevel` | `2` | Operator level used for protected anchor commands, portal sign create/edit/break fallbacks, and anchor-list teleport links. |
+| `crossDimensionPortalSigns` | `true` | Allows portal signs to use line 4 as a dimension id when the anchor is not found in the current world. |
+| `safeTeleportSearch` | `true` | Searches for a safe standing position near an anchor before teleporting. When disabled, teleports use the anchor block center directly. |
+
+## Releases
+
+Release tags use `v<version>`, where the version includes the Minecraft target, for example `v1.1.0+mc1.21.10`.
+
+To publish a release, move the relevant changelog entries into a versioned section, update `mod_version` in `gradle.properties`, run `.\gradlew.bat build`, commit the release prep, tag the commit, and push `main` with the tag:
+
+```powershell
+git tag v1.1.0+mc1.21.10
+git push origin main v1.1.0+mc1.21.10
+```
+
+Pushing the tag runs the release workflow. It builds with Java 25, creates a GitHub Release, and attaches the remapped mod jar and sources jar from `build/libs`.

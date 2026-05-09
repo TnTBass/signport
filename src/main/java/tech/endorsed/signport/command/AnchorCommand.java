@@ -15,12 +15,15 @@ import net.minecraft.text.ClickEvent;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
-import oshi.util.tuples.Triplet;
+import net.minecraft.util.math.Vec3d;
+import tech.endorsed.signport.config.SignPortConfig;
 import tech.endorsed.signport.permission.SignPortPermissions;
 import tech.endorsed.signport.world.Anchor;
 import tech.endorsed.signport.world.AnchorState;
+import tech.endorsed.signport.world.TeleportDestinationResolver;
 
 import java.util.EnumSet;
+import java.util.Optional;
 
 import static net.minecraft.server.command.CommandManager.literal;
 
@@ -67,18 +70,24 @@ public class AnchorCommand {
 
         var state = AnchorState.getServerState(world);
 
-        for (Anchor anchor: state.GetAnchors()) {
-            if (name.equals(anchor.name)) {
-                player.teleport(world,
-                        anchor.pos.getX(),
-                        anchor.pos.getY(),
-                        anchor.pos.getZ(),
-                        EnumSet.noneOf(PositionFlag.class),
-                        player.getYaw(),
-                        player.getPitch(),
-                        false);
-                return 1;
+        Optional<Anchor> anchor = state.findAnchor(name);
+        if (anchor.isPresent()) {
+            Optional<Vec3d> destination = TeleportDestinationResolver.resolve(world, anchor.get().pos);
+            if (destination.isEmpty()) {
+                player.sendMessage(Text.literal("Could not find a safe destination near anchor '%s'".formatted(anchor.get().name)));
+                return 0;
             }
+
+            Vec3d pos = destination.get();
+            player.teleport(world,
+                    pos.x,
+                    pos.y,
+                    pos.z,
+                    EnumSet.noneOf(PositionFlag.class),
+                    player.getYaw(),
+                    player.getPitch(),
+                    false);
+            return 1;
         }
 
         player.sendMessage(Text.literal("Could not find anchor '%s'".formatted(name)));
@@ -92,15 +101,14 @@ public class AnchorCommand {
         AnchorState anchorState = AnchorState.getServerState(source.getWorld());
         if (anchorState == null) return 0;
 
+        var aPos = pos == null ? source.getPlayer().getBlockPos() : pos;
+        if (anchorState.findAnchor(name).isPresent()) throw NAME_CLASH_EXCEPTION.create();
         for (Anchor anchor : anchorState.GetAnchors()) {
-            if (anchor.name.equals(name)) throw NAME_CLASH_EXCEPTION.create();
-            if (anchor.pos.equals(pos)) throw CREATE_FAILED_EXCEPTION.create();
+            if (anchor.pos.equals(aPos)) throw CREATE_FAILED_EXCEPTION.create();
         }
 
-        var aPos = pos == null ? source.getPlayer().getBlockPos() : pos;
         Anchor anchor = new Anchor(name, aPos);
-        anchorState.anchors.add(anchor);
-        anchorState.markDirty();
+        anchorState.addAnchor(anchor);
 
         player.sendMessage(Text.literal("Created anchor '%s'".formatted(name)));
 
@@ -114,20 +122,13 @@ public class AnchorCommand {
         AnchorState anchorState = AnchorState.getServerState(source.getWorld());
         if (anchorState == null) return 0;
 
-        int i = 0;
-        for (Anchor anchor : anchorState.GetAnchors()) {
-            if (anchor.name.equals(name)) {
-                anchorState.anchors.remove(i);
-                anchorState.markDirty();
-                player.sendMessage(Text.literal("Deleted anchor '%s'".formatted(name)));
-                return 1;
-            }
-            i = i + 1;
+        if (anchorState.deleteAnchor(name)) {
+            player.sendMessage(Text.literal("Deleted anchor '%s'".formatted(name)));
+            return 1;
         }
 
         if (name.equalsIgnoreCase("all")) {
-            anchorState.anchors.clear();
-            anchorState.markDirty();
+            anchorState.clearAnchors();
             player.sendMessage(Text.literal("Deleted ALL anchors"));
             return 1;
         }
@@ -151,7 +152,7 @@ public class AnchorCommand {
             MutableText message = Text.literal("[%d] %s [%d, %d, %d]"
                     .formatted(i, anchor.name, anchor.pos.getX(), anchor.pos.getY(), anchor.pos.getZ()));
 
-            if (player.hasPermissionLevel(2)) {
+            if (player.hasPermissionLevel(SignPortConfig.get().protectedActionOpLevel())) {
                 message = message.setStyle(
                         message.getStyle().withClickEvent(
                                 new ClickEvent.RunCommand("/tp @s %d %d %d".formatted(anchor.pos.getX(), anchor.pos.getY(), anchor.pos.getZ()))));
