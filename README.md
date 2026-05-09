@@ -94,4 +94,12 @@ git tag v1.1.0+mc1.21.10
 git push origin main v1.1.0+mc1.21.10
 ```
 
-Pushing the tag runs the release workflow. It builds with Java 25, creates a GitHub Release, attaches the remapped mod jar and sources jar from `build/libs`, and publishes the same build to Modrinth. The workflow requires a `MODRINTH_TOKEN` repository secret with permission to create versions for the `modern-signport` Modrinth project.
+Pushing the tag runs the release workflow. It builds with Java 25, creates a GitHub Release, attaches the remapped mod jar and sources jar from `build/libs`, and publishes the same build to Modrinth and CurseForge.
+
+The workflow requires these repository secrets:
+
+| Secret | Purpose |
+| --- | --- |
+| `MODRINTH_TOKEN` | Creates versions for the `modern-signport` Modrinth project. |
+| `CURSEFORGE_TOKEN` | Uploads files through the CurseForge Upload API. |
+| `CURSEFORGE_PROJECT_ID` | Numeric CurseForge project ID for the SignPort project. |

@@ -242,12 +242,25 @@ tasks.register("checkSourceHygiene") {
 				|| !releaseWorkflow.contains("./scripts/upload-modrinth.ps1")) {
 			throw new GradleException("Release workflow must publish each release build to Modrinth after creating the GitHub Release.")
 		}
+		if (!releaseWorkflow.contains("publish curseforge release")
+				|| !releaseWorkflow.contains("CURSEFORGE_TOKEN")
+				|| !releaseWorkflow.contains("CURSEFORGE_PROJECT_ID")
+				|| !releaseWorkflow.contains("./scripts/upload-curseforge.ps1")) {
+			throw new GradleException("Release workflow must publish each release build to CurseForge after creating the GitHub Release.")
+		}
 
 		def modrinthUploadScript = file("scripts/upload-modrinth.ps1").text
 		if (!modrinthUploadScript.contains("https://api.modrinth.com/v2/version")
 				|| !modrinthUploadScript.contains("MODRINTH_TOKEN")
 				|| modrinthUploadScript.contains("https://api.modrinth.com/v2/project\"")) {
 			throw new GradleException("Modrinth upload script must publish versions to an existing project using MODRINTH_TOKEN.")
+		}
+		def curseForgeUploadScript = file("scripts/upload-curseforge.ps1").text
+		if (!curseForgeUploadScript.contains('https://minecraft.curseforge.com/api/projects/$ProjectId/upload-file')
+				|| !curseForgeUploadScript.contains("CURSEFORGE_TOKEN")
+				|| !curseForgeUploadScript.contains("CURSEFORGE_PROJECT_ID")
+				|| !curseForgeUploadScript.contains("https://minecraft.curseforge.com/api/game/versions")) {
+			throw new GradleException("CurseForge upload script must publish files to an existing project using CURSEFORGE_TOKEN and CURSEFORGE_PROJECT_ID.")
 		}
 
 		[buildWorkflow, releaseWorkflow].each { workflowText ->

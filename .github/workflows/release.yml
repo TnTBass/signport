@@ -82,3 +82,15 @@ jobs:
             -JarPath "build/libs/signport-$version.jar" `
             -SourcesJarPath "build/libs/signport-$version-sources.jar" `
             -ChangelogPath "release-notes.md"
+      - name: publish curseforge release
+        shell: pwsh
+        env:
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+          CURSEFORGE_PROJECT_ID: ${{ secrets.CURSEFORGE_PROJECT_ID }}
+        run: |
+          $version = $env:GITHUB_REF_NAME.Substring(1)
+          ./scripts/upload-curseforge.ps1 `
+            -Slug "modern-signport" `
+            -Version $version `
+            -JarPath "build/libs/signport-$version.jar" `
+            -ChangelogPath "release-notes.md"
