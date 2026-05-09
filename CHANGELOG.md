@@ -6,12 +6,6 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
-## 1.1.2+mc1.21.10 - 2026-05-09
-
-- Fixed changelog extraction failing when the version contains a `+` character, which caused the Modrinth and CurseForge upload scripts to crash on empty release notes.
-
-## 1.1.1+mc1.21.10 - 2026-05-08
-
 - Added CurseForge publication to the tag-triggered release workflow using the existing release metadata.
 - Added Modrinth publication to the tag-triggered release workflow and a source hygiene gate to keep it wired in.
 - Added mechanical source hygiene gates for unit-test companions, wrapper checksum hardening, and obvious duplicate portal validation.
@@ -24,6 +18,8 @@ This project uses SemVer-style mod versions. Release entries should include the 
 - Made sign and `/signport tp` teleports search for a safe centered destination near the anchor and fail gracefully when none is available.
 - Added an in-game validation checklist for SignPort permission and portal behavior.
 - Updated source links for the public SignPort repository and Modrinth listing prep.
+- Fixed changelog extraction failing when the version contains a `+` character, which caused the Modrinth and CurseForge upload scripts to crash on empty release notes.
+- Fixed Modrinth version creation by resolving the project slug to a base62 ID before upload.
 
 ## 1.1.0+mc1.21.10 - 2026-05-08
 

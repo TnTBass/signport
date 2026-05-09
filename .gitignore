@@ -45,3 +45,6 @@ docs/modrinth-*
 # local workspace notes and runtime logs
 prompts/
 logs/
+
+# claude code working directory
+.claude/
