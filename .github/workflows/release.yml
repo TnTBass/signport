@@ -44,7 +44,7 @@ jobs:
         run: |
           version="${GITHUB_REF_NAME#v}"
           awk -v version="$version" '
-            $0 == "## " version || $0 ~ "^## " version " - " {
+            $0 == "## " version || index($0, "## " version " - ") == 1 {
               capture = 1
               next
             }

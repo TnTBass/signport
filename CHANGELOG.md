@@ -6,6 +6,10 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
+## 1.1.2+mc1.21.10 - 2026-05-09
+
+- Fixed changelog extraction failing when the version contains a `+` character, which caused the Modrinth and CurseForge upload scripts to crash on empty release notes.
+
 ## 1.1.1+mc1.21.10 - 2026-05-08
 
 - Added CurseForge publication to the tag-triggered release workflow using the existing release metadata.
