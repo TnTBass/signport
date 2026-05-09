@@ -6,6 +6,8 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
+## 1.1.1+mc1.21.10 - 2026-05-08
+
 - Added CurseForge publication to the tag-triggered release workflow using the existing release metadata.
 - Added Modrinth publication to the tag-triggered release workflow and a source hygiene gate to keep it wired in.
 - Added mechanical source hygiene gates for unit-test companions, wrapper checksum hardening, and obvious duplicate portal validation.
