@@ -80,6 +80,21 @@ function Get-Changelog {
     return $changelog
 }
 
+# Resolve the slug to a base62 project ID — the version creation endpoint
+# does not accept slugs containing characters outside base62 (e.g. '-').
+$headers = @{
+    "Authorization" = $token
+    "User-Agent" = "TnTBass/signport Modrinth upload"
+    "Accept" = "application/json"
+}
+$project = Invoke-RestMethod `
+    -Uri "https://api.modrinth.com/v2/project/$Slug" `
+    -Headers $headers
+if ($null -eq $project -or [string]::IsNullOrWhiteSpace($project.id)) {
+    throw "Could not resolve Modrinth project '$Slug' to an ID. Check that the project exists and the slug is correct."
+}
+$projectId = $project.id
+
 $versionData = @{
     name = "SignPort $displayVersion for Minecraft $minecraftVersion"
     version_number = $Version
@@ -97,7 +112,7 @@ $versionData = @{
     loaders = @("fabric")
     featured = $true
     status = "listed"
-    project_id = $Slug
+    project_id = $projectId
     file_parts = @("file", "sources")
     primary_file = "file"
 } | ConvertTo-Json -Depth 10
