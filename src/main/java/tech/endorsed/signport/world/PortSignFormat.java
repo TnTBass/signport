@@ -2,6 +2,8 @@ package tech.endorsed.signport.world;
 
 import net.minecraft.resources.Identifier;
 
+import java.util.Locale;
+
 public final class PortSignFormat {
 	public static final String SHORT_MARKER = "[sp]";
 	public static final String LONG_MARKER = "[signport]";
@@ -22,6 +24,13 @@ public final class PortSignFormat {
 		String line = normalizeLine(value);
 		if (line.isBlank()) return null;
 
-		return Identifier.tryParse(line);
+		// Accept common shorthand names in addition to full identifiers.
+		// "the_nether", "the_end", and "overworld" already work via the
+		// default minecraft: namespace, but "nether" and "end" do not.
+		return switch (line.toLowerCase(Locale.ROOT)) {
+			case "nether" -> Identifier.of("minecraft", "the_nether");
+			case "end"    -> Identifier.of("minecraft", "the_end");
+			default       -> Identifier.tryParse(line); // preserve case for custom dimensions
+		};
 	}
 }

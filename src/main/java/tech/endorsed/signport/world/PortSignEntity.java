@@ -85,33 +85,29 @@ public class PortSignEntity {
 
         String line2 = PortSignFormat.normalizeLine(activeText.getMessage(2, false).getString());
 
-        AnchorState state = AnchorState.getServerState((ServerLevel) world);
-        if (state == null) return new PortalDestination(false, null, world, activeText);
+        Optional<AnchorState> stateOpt = AnchorState.peekServerState(world.getServer());
+        if (stateOpt.isEmpty()) return new PortalDestination(false, null, world, activeText);
 
-        Optional<Anchor> anchor = state.findAnchorIgnoreCase(line2);
-        if (anchor.isPresent()) {
-            return new PortalDestination(true, anchor.get(), world, activeText);
+        // Explicit line 3 dimension takes priority — checked before the current-dimension
+        // lookup so a sign with "the_nether" always goes to the nether anchor, even if an
+        // anchor with the same name exists in the current dimension.
+        ServerLevel targetWorld = (ServerLevel) world;
+        ResourceKey<Level> targetDimension = world.dimension();
+
+        if (SignPortConfig.get().crossDimensionPortalSigns()) {
+            var dimensionId = PortSignFormat.parseDimensionId(activeText.getMessage(3, false).getString());
+            if (dimensionId != null) {
+                ServerLevel specifiedWorld = world.getServer().getLevel(ResourceKey.create(Registries.DIMENSION, dimensionId));
+                if (specifiedWorld != null) {
+                    targetWorld = specifiedWorld;
+                    targetDimension = specifiedWorld.dimension();
+                }
+            }
         }
 
-        if (!SignPortConfig.get().crossDimensionPortalSigns()) {
-            return new PortalDestination(false, null, world, activeText);
-        }
-
-        var dimensionId = PortSignFormat.parseDimensionId(activeText.getMessage(3, false).getString());
-        if (dimensionId == null) return new PortalDestination(false, null, world, activeText);
-
-        ServerLevel dimensionWorld = world.getServer().getLevel(ResourceKey.create(Registries.DIMENSION, dimensionId));
-        if (dimensionWorld == null) return new PortalDestination(false, null, world, activeText);
-
-        AnchorState dimensionalAnchorState = AnchorState.getServerState(dimensionWorld);
-        if (dimensionalAnchorState == null) return new PortalDestination(false, null, world, activeText);
-
-        Optional<Anchor> dimensionalAnchor = dimensionalAnchorState.findAnchorIgnoreCase(line2);
-        if (dimensionalAnchor.isPresent()) {
-            return new PortalDestination(true, dimensionalAnchor.get(), dimensionWorld, activeText);
-        }
-
-        return new PortalDestination(false, null, world, activeText);
+        return stateOpt.get().findAnchorIgnoreCase(line2, targetDimension)
+                .map(anchor -> new PortalDestination(true, anchor, targetWorld, activeText))
+                .orElse(new PortalDestination(false, null, world, activeText));
     }
 
     public static PortalDestination resolvePortalDestination(Level world, SignText primaryText, SignText secondaryText) {

@@ -24,6 +24,8 @@ import tech.endorsed.signport.world.AnchorState;
 import tech.endorsed.signport.world.TeleportDestinationResolver;
 
 import java.util.EnumSet;
+import java.util.List;
+import java.util.Optional;
 import java.util.Optional;
 
 import static net.minecraft.commands.Commands.literal;
@@ -68,9 +70,8 @@ public class AnchorCommand {
 
         var world = source.getLevel();
 
-        var state = AnchorState.getServerState(world);
-
-        Optional<Anchor> anchor = state.findAnchor(name);
+        Optional<Anchor> anchor = AnchorState.peekServerState(source.getServer())
+                .flatMap(s -> s.findAnchor(name, world.dimension()));
         if (anchor.isPresent()) {
             Optional<Vec3> destination = TeleportDestinationResolver.resolve(world, anchor.get().pos);
             if (destination.isEmpty()) {
@@ -98,16 +99,16 @@ public class AnchorCommand {
         ServerPlayer player = source.getPlayer();
         if (player == null) return 0;
 
-        AnchorState anchorState = AnchorState.getServerState(source.getLevel());
-        if (anchorState == null) return 0;
+        var dim = source.getLevel().dimension();
+        AnchorState anchorState = AnchorState.getServerState(source.getServer());
 
         var aPos = pos == null ? source.getPlayer().blockPosition() : pos;
-        if (anchorState.findAnchor(name).isPresent()) throw NAME_CLASH_EXCEPTION.create();
-        for (Anchor anchor : anchorState.GetAnchors()) {
+        if (anchorState.findAnchor(name, dim).isPresent()) throw NAME_CLASH_EXCEPTION.create();
+        for (Anchor anchor : anchorState.getAnchorsForDimension(dim)) {
             if (anchor.pos.equals(aPos)) throw CREATE_FAILED_EXCEPTION.create();
         }
 
-        Anchor anchor = new Anchor(name, aPos);
+        Anchor anchor = new Anchor(name, aPos, dim);
         anchorState.addAnchor(anchor);
 
         player.sendSystemMessage(Component.literal("Created anchor '%s'".formatted(name)));
@@ -119,16 +120,16 @@ public class AnchorCommand {
         ServerPlayer player = source.getPlayer();
         if (player == null) return 0;
 
-        AnchorState anchorState = AnchorState.getServerState(source.getLevel());
-        if (anchorState == null) return 0;
+        var dim = source.getLevel().dimension();
+        AnchorState anchorState = AnchorState.getServerState(source.getServer());
 
-        if (anchorState.deleteAnchor(name)) {
+        if (anchorState.deleteAnchor(name, dim)) {
             player.sendSystemMessage(Component.literal("Deleted anchor '%s'".formatted(name)));
             return 1;
         }
 
         if (name.equalsIgnoreCase("all")) {
-            anchorState.clearAnchors();
+            anchorState.clearAnchors(dim);
             player.sendSystemMessage(Component.literal("Deleted ALL anchors"));
             return 1;
         }
@@ -140,15 +141,17 @@ public class AnchorCommand {
         ServerPlayer player = source.getPlayer();
         if (player == null) return 0;
 
-        AnchorState anchorState = AnchorState.getServerState(source.getLevel());
-        if (anchorState == null) return 0;
-        if (anchorState.GetAnchors().isEmpty()) {
+        var dim = source.getLevel().dimension();
+        List<Anchor> dimAnchors = AnchorState.peekServerState(source.getServer())
+                .map(s -> s.getAnchorsForDimension(dim))
+                .orElse(List.of());
+        if (dimAnchors.isEmpty()) {
             player.sendSystemMessage(Component.literal("No anchors exist"));
             return 1;
         }
 
         int i = 1;
-        for (Anchor anchor : anchorState.GetAnchors()) {
+        for (Anchor anchor : dimAnchors) {
             MutableComponent message = Component.literal("[%d] %s [%d, %d, %d]"
                     .formatted(i, anchor.name, anchor.pos.getX(), anchor.pos.getY(), anchor.pos.getZ()));
 
