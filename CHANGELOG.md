@@ -6,8 +6,9 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
-- Ported to Minecraft 26.1.2 with official (Mojang) mappings.
+## 1.2.0+mc26.1.2 - 2026-05-10
 
+- Ported to Minecraft 26.1.2 with official (Mojang) mappings.
 - Added CurseForge publication to the tag-triggered release workflow using the existing release metadata.
 - Added Modrinth publication to the tag-triggered release workflow and a source hygiene gate to keep it wired in.
 - Added mechanical source hygiene gates for unit-test companions, wrapper checksum hardening, and obvious duplicate portal validation.
