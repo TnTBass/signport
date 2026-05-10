@@ -1,6 +1,6 @@
 package tech.endorsed.signport.world;
 
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 
 public final class PortSignFormat {
 	public static final String SHORT_MARKER = "[sp]";

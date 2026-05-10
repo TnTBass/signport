@@ -1,20 +1,18 @@
 package tech.endorsed.signport.mixin;
 
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.SignBlockEntity;
-import net.minecraft.block.entity.SignText;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityPose;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.network.ServerPlayerInteractionManager;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.Text;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.world.World;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerPlayerGameMode;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Pose;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.SignBlockEntity;
+import net.minecraft.world.level.block.entity.SignText;
+import net.minecraft.world.phys.BlockHitResult;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -23,30 +21,30 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import tech.endorsed.signport.permission.SignPortPermissions;
 import tech.endorsed.signport.world.PortSignEntity;
 
-@Mixin(ServerPlayerInteractionManager.class)
+@Mixin(ServerPlayerGameMode.class)
 public class ServerPlayerInteractionManagerMixin {
-    @Shadow protected ServerWorld world;
+    @Shadow protected ServerLevel level;
 
-    @Inject(at = @At("HEAD"), method = "interactBlock", cancellable = true)
-    public void onInteract(ServerPlayerEntity player,
-                           World world,
+    @Inject(at = @At("HEAD"), method = "useItemOn", cancellable = true)
+    public void onInteract(ServerPlayer player,
+                           Level world,
                            ItemStack stack,
-                           Hand hand,
+                           InteractionHand hand,
                            BlockHitResult hitResult,
-                           CallbackInfoReturnable<ActionResult> cir) {
+                           CallbackInfoReturnable<InteractionResult> cir) {
         BlockEntity blockEntity = world.getBlockEntity(hitResult.getBlockPos());
         if (!(blockEntity instanceof SignBlockEntity sign)) return;
-        if (SignPortPermissions.canEditSign(player) && player.isInPose(EntityPose.CROUCHING)) {
+        if (SignPortPermissions.canEditSign(player) && player.hasPose(Pose.CROUCHING)) {
             return;
         }
 
-        SignText primaryText = sign.getText(sign.isPlayerFacingFront(player));
-        SignText secondaryText = sign.isPlayerFacingFront(player) ? sign.getBackText() : sign.getFrontText();
+        SignText primaryText = sign.getText(sign.isFacingFrontText(player));
+        SignText secondaryText = sign.isFacingFrontText(player) ? sign.getBackText() : sign.getFrontText();
         PortSignEntity.PortalDestination destination = PortSignEntity.resolvePortalDestination(world, primaryText, secondaryText);
 
         if (destination.valid() && !SignPortPermissions.canUseSign(player)) {
-            player.sendMessage(Text.literal("You do not have permissions to use port signs."), true);
-            cir.setReturnValue(ActionResult.FAIL);
+            player.sendOverlayMessage(Component.literal("You do not have permissions to use port signs."));
+            cir.setReturnValue(InteractionResult.FAIL);
             cir.cancel();
             return;
         }
@@ -56,7 +54,7 @@ public class ServerPlayerInteractionManagerMixin {
             return;
         }
 
-        cir.setReturnValue(ActionResult.PASS);
+        cir.setReturnValue(InteractionResult.PASS);
         cir.cancel();
     }
 }

@@ -1,6 +1,6 @@
 package tech.endorsed.signport.world;
 
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
 
 public class Anchor {
     public String name;

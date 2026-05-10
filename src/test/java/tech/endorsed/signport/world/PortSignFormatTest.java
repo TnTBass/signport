@@ -1,6 +1,6 @@
 package tech.endorsed.signport.world;
 
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -27,8 +27,8 @@ class PortSignFormatTest {
 
 	@Test
 	void parsesValidDimensionIds() {
-		assertEquals(Identifier.of("minecraft", "the_nether"), PortSignFormat.parseDimensionId("minecraft:the_nether"));
-		assertEquals(Identifier.of("minecraft", "overworld"), PortSignFormat.parseDimensionId(" overworld "));
+		assertEquals(Identifier.fromNamespaceAndPath("minecraft", "the_nether"), PortSignFormat.parseDimensionId("minecraft:the_nether"));
+		assertEquals(Identifier.fromNamespaceAndPath("minecraft", "overworld"), PortSignFormat.parseDimensionId(" overworld "));
 	}
 
 	@Test

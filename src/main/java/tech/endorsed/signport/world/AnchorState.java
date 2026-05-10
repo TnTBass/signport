@@ -3,14 +3,13 @@ package tech.endorsed.signport.world;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.datafixer.DataFixTypes;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.PersistentState;
-import net.minecraft.world.PersistentStateManager;
-import net.minecraft.world.PersistentStateType;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.datafix.DataFixTypes;
+import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
+import net.minecraft.world.level.storage.SavedDataStorage;
 import tech.endorsed.signport.SignPort;
 
 import java.util.ArrayList;
@@ -20,7 +19,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
-public class AnchorState extends PersistentState {
+public class AnchorState extends SavedData {
 
     public AnchorState() { }
 
@@ -54,7 +53,7 @@ public class AnchorState extends PersistentState {
     public void addAnchor(Anchor anchor) {
         anchors.add(anchor);
         invalidateLookup();
-        markDirty();
+        setDirty();
     }
 
     public boolean deleteAnchor(String name) {
@@ -62,7 +61,7 @@ public class AnchorState extends PersistentState {
             if (anchors.get(index).name.equals(name)) {
                 anchors.remove(index);
                 invalidateLookup();
-                markDirty();
+                setDirty();
                 return true;
             }
         }
@@ -73,7 +72,7 @@ public class AnchorState extends PersistentState {
     public void clearAnchors() {
         anchors.clear();
         invalidateLookup();
-        markDirty();
+        setDirty();
     }
 
     private void rebuildLookupIfNeeded() {
@@ -115,12 +114,16 @@ public class AnchorState extends PersistentState {
         return entries;
     }).fieldOf("anchors").codec();
 
-    private static final PersistentStateType<AnchorState> type = new PersistentStateType<>(SignPort.MOD_ID, AnchorState::new, CODEC, DataFixTypes.CHUNK);
+    private static final SavedDataType<AnchorState> type = new SavedDataType<>(
+            Identifier.fromNamespaceAndPath(SignPort.MOD_ID, SignPort.MOD_ID),
+            AnchorState::new,
+            CODEC,
+            DataFixTypes.CHUNK);
 
-    public static AnchorState getServerState(ServerWorld world) {
+    public static AnchorState getServerState(ServerLevel world) {
         if (world == null) return null;
-        PersistentStateManager persistentStateManager = world.getPersistentStateManager();
+        SavedDataStorage savedDataStorage = world.getDataStorage();
 
-        return persistentStateManager.getOrCreate(type);
+        return savedDataStorage.computeIfAbsent(type);
     }
 }

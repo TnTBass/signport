@@ -1,15 +1,15 @@
 package tech.endorsed.signport.mixin;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.block.entity.SignBlockEntity;
-import net.minecraft.block.entity.SignText;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.server.filter.FilteredMessage;
-import net.minecraft.text.Text;
-import net.minecraft.util.Pair;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.server.network.FilteredText;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.entity.SignBlockEntity;
+import net.minecraft.world.level.block.entity.SignText;
+import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -33,9 +33,9 @@ public abstract class SignBlockEntityMixin extends BlockEntity {
 		super(type, pos, state);
 	}
 
-	@Inject(at = @At("HEAD"), method = "tryChangeText", cancellable = true)
-	private void onTryChangeText(PlayerEntity player, boolean front, List<FilteredMessage> messages, CallbackInfo ci) {
-		if (this.getWorld() == null || this.getWorld().isClient()) return;
+	@Inject(at = @At("HEAD"), method = "updateSignText", cancellable = true)
+	private void onTryChangeText(Player player, boolean front, List<FilteredText> messages, CallbackInfo ci) {
+		if (this.getLevel() == null || this.getLevel().isClientSide()) return;
 
 		SignText activeText = front ? this.frontText : this.backText;
 		SignText inactiveText = front ? this.backText : this.frontText;
@@ -43,30 +43,30 @@ public abstract class SignBlockEntityMixin extends BlockEntity {
 		boolean requestedPortalSign = isPortalSignText(messages);
 
 		if (existingPortalSign && !SignPortPermissions.canEditSign(player)) {
-			player.sendMessage(Text.literal("You do not have permissions to edit port signs."), true);
+			player.sendOverlayMessage(Component.literal("You do not have permissions to edit port signs."));
 			ci.cancel();
 			return;
 		}
 
 		if (!existingPortalSign && requestedPortalSign && !SignPortPermissions.canCreateSign(player)) {
-			player.sendMessage(Text.literal("You do not have permissions to create port signs."), true);
+			player.sendOverlayMessage(Component.literal("You do not have permissions to create port signs."));
 			ci.cancel();
 		}
 	}
 
-	@Inject(at = @At("RETURN"), method = "changeText")
+	@Inject(at = @At("RETURN"), method = "updateText")
 	private void onSignChange(UnaryOperator<SignText> textChanger, boolean front, CallbackInfoReturnable<Boolean> cir) {
 		if (cir.isCancelled()) return;
-		if (this.getWorld() == null || this.getWorld().isClient()) return;
+		if (this.getLevel() == null || this.getLevel().isClientSide()) return;
 
 		SignText activeText = front ? this.frontText : this.backText;
 
-		Pair<Boolean, Anchor> foundAnchor = PortSignEntity.isValidPortSign(this.getWorld(), activeText);
+		boolean foundAnchor = PortSignEntity.isValidPortSign(this.getLevel(), activeText);
 
-		PortSignEntity.updatePortLink(activeText, foundAnchor.getLeft());
+		PortSignEntity.updatePortLink(activeText, foundAnchor);
 	}
 
-	private static boolean isPortalSignText(List<FilteredMessage> messages) {
+	private static boolean isPortalSignText(List<FilteredText> messages) {
 		return messages.size() > 1 && PortSignFormat.isPortalMarker(messages.get(1).raw());
 	}
 }

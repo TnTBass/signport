@@ -6,7 +6,7 @@ Use this checklist to validate SignPort on a real Fabric server. The focus is pe
 
 Target versions:
 
-- Minecraft `1.21.10`
+- Minecraft `26.1.2`
 - Java `25`
 - SignPort build from this repository
 - Fabric API compatible with the project dependencies

@@ -1,7 +1,7 @@
 package tech.endorsed.signport.world;
 
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;
@@ -17,7 +17,7 @@ class TeleportDestinationResolverTest {
         var destination = TeleportDestinationResolver.resolve(anchor, anchor::equals);
 
         assertTrue(destination.isPresent());
-        assertEquals(new Vec3d(10.5, 64.0, -2.5), destination.get());
+        assertEquals(new Vec3(10.5, 64.0, -2.5), destination.get());
     }
 
     @Test
@@ -28,7 +28,7 @@ class TeleportDestinationResolverTest {
         var destination = TeleportDestinationResolver.resolve(anchor, safe::equals);
 
         assertTrue(destination.isPresent());
-        assertEquals(Vec3d.ofBottomCenter(safe), destination.get());
+        assertEquals(Vec3.atBottomCenterOf(safe), destination.get());
     }
 
     @Test
@@ -42,7 +42,7 @@ class TeleportDestinationResolverTest {
         var destination = TeleportDestinationResolver.resolve(anchor, safePositions::contains);
 
         assertTrue(destination.isPresent());
-        assertEquals(Vec3d.ofBottomCenter(new BlockPos(0, 65, 0)), destination.get());
+        assertEquals(Vec3.atBottomCenterOf(new BlockPos(0, 65, 0)), destination.get());
     }
 
     @Test

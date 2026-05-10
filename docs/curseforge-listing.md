@@ -59,7 +59,7 @@ SignPort works with LuckPerms through `fabric-permissions-api`. If no permission
 
 ## Requirements
 
-- Minecraft 1.21.10
+- Minecraft 26.1.2
 - Fabric Loader
 - Fabric API
 - Java 25

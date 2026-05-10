@@ -1,35 +1,34 @@
 package tech.endorsed.signport.world;
 
-import net.minecraft.block.entity.SignText;
-import net.minecraft.network.packet.s2c.play.PositionFlag;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-import net.minecraft.util.Pair;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Relative;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.SignText;
+import net.minecraft.world.phys.Vec3;
 import tech.endorsed.signport.config.SignPortConfig;
 
 import java.util.EnumSet;
 import java.util.Optional;
 
 public class PortSignEntity {
-    public record PortalDestination(boolean valid, Anchor anchor, World world, SignText text) {
+    public record PortalDestination(boolean valid, Anchor anchor, Level world, SignText text) {
     }
 
-    public static boolean teleportToDestination(ServerPlayerEntity entity, World world, SignText activeText) {
+    public static boolean teleportToDestination(ServerPlayer entity, Level world, SignText activeText) {
         return teleportToDestination(entity, world, activeText, null);
     }
 
-    public static boolean teleportToDestination(ServerPlayerEntity entity, World world, SignText primaryText, SignText secondaryText) {
+    public static boolean teleportToDestination(ServerPlayer entity, Level world, SignText primaryText, SignText secondaryText) {
         return teleportToDestination(entity, resolvePortalDestination(world, primaryText, secondaryText), primaryText, secondaryText);
     }
 
     public static boolean teleportToDestination(
-            ServerPlayerEntity entity,
+            ServerPlayer entity,
             PortalDestination destination,
             SignText primaryText,
             SignText secondaryText
@@ -48,24 +47,24 @@ public class PortSignEntity {
         return false;
     }
 
-    private static void teleportToAnchor(ServerPlayerEntity entity, PortalDestination destination) {
+    private static void teleportToAnchor(ServerPlayer entity, PortalDestination destination) {
         if (destination.world() == null) return;
 
         Anchor anchor = destination.anchor();
-        Optional<Vec3d> resolvedPosition = TeleportDestinationResolver.resolve(destination.world(), anchor.pos);
+        Optional<Vec3> resolvedPosition = TeleportDestinationResolver.resolve(destination.world(), anchor.pos);
         if (resolvedPosition.isEmpty()) {
-            entity.sendMessage(Text.literal("Could not find a safe destination near anchor '%s'".formatted(anchor.name)));
+            entity.sendSystemMessage(Component.literal("Could not find a safe destination near anchor '%s'".formatted(anchor.name)));
             return;
         }
 
-        Vec3d pos = resolvedPosition.get();
-        entity.teleport((ServerWorld) destination.world(),
+        Vec3 pos = resolvedPosition.get();
+        entity.teleportTo((ServerLevel) destination.world(),
                 pos.x,
                 pos.y,
                 pos.z,
-                EnumSet.noneOf(PositionFlag.class),
-                entity.getYaw(),
-                entity.getPitch(),
+                EnumSet.noneOf(Relative.class),
+                entity.getYRot(),
+                entity.getXRot(),
                 false);
     }
 
@@ -75,19 +74,18 @@ public class PortSignEntity {
         return PortSignFormat.isPortalMarker(activeText.getMessage(1, false).getString());
     }
 
-    public static Pair<Boolean, Anchor> isValidPortSign(World world, SignText activeText) {
-        PortalDestination portSign = resolvePortalDestination(world, activeText);
-        return new Pair<>(portSign.valid(), portSign.anchor());
+    public static boolean isValidPortSign(Level world, SignText activeText) {
+        return resolvePortalDestination(world, activeText).valid();
     }
 
-    public static PortalDestination resolvePortalDestination(World world, SignText activeText) {
-        if  (world == null || world.isClient()) return new PortalDestination(false, null, world, activeText);
+    public static PortalDestination resolvePortalDestination(Level world, SignText activeText) {
+        if (world == null || world.isClientSide()) return new PortalDestination(false, null, world, activeText);
 
         if (!isSignPortSign(activeText)) return new PortalDestination(false, null, world, activeText);
 
         String line2 = PortSignFormat.normalizeLine(activeText.getMessage(2, false).getString());
 
-        AnchorState state = AnchorState.getServerState((ServerWorld) world);
+        AnchorState state = AnchorState.getServerState((ServerLevel) world);
         if (state == null) return new PortalDestination(false, null, world, activeText);
 
         Optional<Anchor> anchor = state.findAnchorIgnoreCase(line2);
@@ -102,7 +100,7 @@ public class PortSignEntity {
         var dimensionId = PortSignFormat.parseDimensionId(activeText.getMessage(3, false).getString());
         if (dimensionId == null) return new PortalDestination(false, null, world, activeText);
 
-        ServerWorld dimensionWorld = world.getServer().getWorld(RegistryKey.of(RegistryKeys.WORLD, dimensionId));
+        ServerLevel dimensionWorld = world.getServer().getLevel(ResourceKey.create(Registries.DIMENSION, dimensionId));
         if (dimensionWorld == null) return new PortalDestination(false, null, world, activeText);
 
         AnchorState dimensionalAnchorState = AnchorState.getServerState(dimensionWorld);
@@ -116,7 +114,7 @@ public class PortSignEntity {
         return new PortalDestination(false, null, world, activeText);
     }
 
-    public static PortalDestination resolvePortalDestination(World world, SignText primaryText, SignText secondaryText) {
+    public static PortalDestination resolvePortalDestination(Level world, SignText primaryText, SignText secondaryText) {
         PortalDestination destination = resolvePortalDestination(world, primaryText);
         if (destination.valid() || secondaryText == null || secondaryText == primaryText) {
             return destination;
@@ -126,7 +124,7 @@ public class PortSignEntity {
     }
 
     public static void updatePortLink(SignText activeText, boolean foundAnchor) {
-        MutableText text = (MutableText) activeText.getMessage(1, false);
+        MutableComponent text = (MutableComponent) activeText.getMessage(1, false);
         if (foundAnchor) {
             text.setStyle(text.getStyle().withColor(0x2FDD48));
         } else if (isSignPortSign(activeText)) {

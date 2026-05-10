@@ -1,8 +1,8 @@
 package tech.endorsed.signport.permission;
 
 import me.lucko.fabric.api.permissions.v0.Permissions;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.world.entity.player.Player;
 import tech.endorsed.signport.config.SignPortConfig;
 
 public final class SignPortPermissions {
@@ -18,35 +18,35 @@ public final class SignPortPermissions {
 	private SignPortPermissions() {
 	}
 
-	public static boolean canCreateAnchor(ServerCommandSource source) {
+	public static boolean canCreateAnchor(CommandSourceStack source) {
 		return Permissions.check(source, ANCHOR_CREATE, SignPortConfig.get().protectedActionOpLevel());
 	}
 
-	public static boolean canDeleteAnchor(ServerCommandSource source) {
+	public static boolean canDeleteAnchor(CommandSourceStack source) {
 		return Permissions.check(source, ANCHOR_DELETE, SignPortConfig.get().protectedActionOpLevel());
 	}
 
-	public static boolean canListAnchors(ServerCommandSource source) {
+	public static boolean canListAnchors(CommandSourceStack source) {
 		return Permissions.check(source, ANCHOR_LIST, SignPortConfig.get().protectedActionOpLevel());
 	}
 
-	public static boolean canUseTeleportCommand(ServerCommandSource source) {
+	public static boolean canUseTeleportCommand(CommandSourceStack source) {
 		return Permissions.check(source, TELEPORT_COMMAND, SignPortConfig.get().teleportCommandDefault());
 	}
 
-	public static boolean canCreateSign(PlayerEntity player) {
+	public static boolean canCreateSign(Player player) {
 		return Permissions.check(player, SIGN_CREATE, SignPortConfig.get().protectedActionOpLevel());
 	}
 
-	public static boolean canEditSign(PlayerEntity player) {
+	public static boolean canEditSign(Player player) {
 		return Permissions.check(player, SIGN_EDIT, SignPortConfig.get().protectedActionOpLevel());
 	}
 
-	public static boolean canBreakSign(PlayerEntity player) {
+	public static boolean canBreakSign(Player player) {
 		return Permissions.check(player, SIGN_BREAK, SignPortConfig.get().protectedActionOpLevel());
 	}
 
-	public static boolean canUseSign(PlayerEntity player) {
+	public static boolean canUseSign(Player player) {
 		return Permissions.check(player, SIGN_USE, SignPortConfig.get().signUseDefault());
 	}
 }
