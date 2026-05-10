@@ -192,7 +192,7 @@ public class AnchorState extends SavedData {
      */
     public static Optional<AnchorState> peekServerState(MinecraftServer server) {
         if (server == null) return Optional.empty();
-        return server.overworld().getDataStorage().get(TYPE);
+        return Optional.ofNullable(server.overworld().getDataStorage().get(TYPE));
     }
 
     // -------------------------------------------------------------------------
