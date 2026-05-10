@@ -7,6 +7,8 @@ This project uses SemVer-style mod versions. Release entries should include the 
 ## Unreleased
 
 - Fixed source hygiene check failing on Windows due to CRLF line endings in workflow files.
+- Logged a one-line anchor summary at server start (`Loaded N anchor(s): X in overworld, Y in the_nether`); legacy file migration now also runs eagerly at startup instead of on the first write.
+- Auto-sync Modrinth project description from `docs/modrinth-listing.md` on every release; added hygiene gates to ensure both listing docs stay structurally complete.
 - Added tab-completion of anchor names (in the player's current dimension) for `/sp tp <name>` and `/sp anchor delete <name>`.
 - Paginated `/sp anchor list` with a clickable `[« Prev] page X/Y [Next »]` footer; out-of-range pages clamp to the last valid page.
 - Added an optional case-insensitive substring filter to `/sp anchor list [filter] [page]`; the page footer preserves the active filter.
