@@ -95,6 +95,33 @@ if ($null -eq $project -or [string]::IsNullOrWhiteSpace($project.id)) {
 }
 $projectId = $project.id
 
+# Sync the project description from docs/modrinth-listing.md.
+# This runs on every release so the live page always reflects the repo source.
+$listingDoc = Join-Path $root "docs/modrinth-listing.md"
+if (Test-Path -LiteralPath $listingDoc) {
+    $listingContent = (Get-Content -Raw -LiteralPath $listingDoc) -replace "`r`n", "`n"
+    $descMatch = [regex]::Match($listingContent, '## Project Description\n+````markdown\n([\s\S]*?)````')
+    if ($descMatch.Success) {
+        $descBody = $descMatch.Groups[1].Value.TrimEnd()
+        $descPayload = [System.Text.Encoding]::UTF8.GetBytes((@{ body = $descBody } | ConvertTo-Json -Depth 2))
+        try {
+            Invoke-RestMethod `
+                -Uri "https://api.modrinth.com/v2/project/$Slug" `
+                -Method PATCH `
+                -Headers $headers `
+                -ContentType "application/json" `
+                -Body $descPayload | Out-Null
+            Write-Host "[SignPort] Synced Modrinth project description from docs/modrinth-listing.md."
+        } catch {
+            Write-Warning "[SignPort] Failed to sync Modrinth project description: $_"
+        }
+    } else {
+        Write-Warning "[SignPort] Could not find '## Project Description' block in docs/modrinth-listing.md — description not synced."
+    }
+} else {
+    Write-Warning "[SignPort] docs/modrinth-listing.md not found — Modrinth project description was not synced."
+}
+
 $versionData = @{
     name = "SignPort $displayVersion for Minecraft $minecraftVersion"
     version_number = $Version

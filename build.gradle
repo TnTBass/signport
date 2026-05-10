@@ -251,8 +251,9 @@ tasks.register("checkSourceHygiene") {
 		def modrinthUploadScript = file("scripts/upload-modrinth.ps1").text
 		if (!modrinthUploadScript.contains("https://api.modrinth.com/v2/version")
 				|| !modrinthUploadScript.contains("MODRINTH_TOKEN")
-				|| modrinthUploadScript.contains("https://api.modrinth.com/v2/project\"")) {
-			throw new GradleException("Modrinth upload script must publish versions to an existing project using MODRINTH_TOKEN.")
+				|| !modrinthUploadScript.contains("api.modrinth.com/v2/project")
+				|| !modrinthUploadScript.contains("modrinth-listing.md")) {
+			throw new GradleException("Modrinth upload script must publish versions and sync the project description from docs/modrinth-listing.md.")
 		}
 		def curseForgeUploadScript = file("scripts/upload-curseforge.ps1").text
 		if (!curseForgeUploadScript.contains('https://minecraft.curseforge.com/api/projects/$ProjectId/upload-file')
@@ -260,6 +261,18 @@ tasks.register("checkSourceHygiene") {
 				|| !curseForgeUploadScript.contains("CURSEFORGE_PROJECT_ID")
 				|| !curseForgeUploadScript.contains("https://minecraft.curseforge.com/api/game/versions")) {
 			throw new GradleException("CurseForge upload script must publish files to an existing project using CURSEFORGE_TOKEN and CURSEFORGE_PROJECT_ID.")
+		}
+
+		def modrinthListing = file("docs/modrinth-listing.md").text
+		if (!modrinthListing.contains("## Project Description")) {
+			throw new GradleException("docs/modrinth-listing.md must contain a '## Project Description' section (it is synced to Modrinth on every release).")
+		}
+
+		def curseforgeListing = file("docs/curseforge-listing.md").text
+		["## Features", "## Sign Format", "## Commands", "## Permissions", "## Requirements"].each { section ->
+			if (!curseforgeListing.contains(section)) {
+				throw new GradleException("docs/curseforge-listing.md must contain a '${section}' section (paste this file into CurseForge after each release).")
+			}
 		}
 
 		[buildWorkflow, releaseWorkflow].each { workflowText ->
