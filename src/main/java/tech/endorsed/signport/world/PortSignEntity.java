@@ -105,8 +105,9 @@ public class PortSignEntity {
             }
         }
 
+        final ServerLevel resolvedWorld = targetWorld;
         return stateOpt.get().findAnchorIgnoreCase(line2, targetDimension)
-                .map(anchor -> new PortalDestination(true, anchor, targetWorld, activeText))
+                .map(anchor -> new PortalDestination(true, anchor, resolvedWorld, activeText))
                 .orElse(new PortalDestination(false, null, world, activeText));
     }
 
