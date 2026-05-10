@@ -224,12 +224,12 @@ tasks.register("checkSourceHygiene") {
 			throw new GradleException("SignEvents break protection must check portal markers, not only currently valid anchors.")
 		}
 
-		def buildWorkflow = file(".github/workflows/build.yml").text
+		def buildWorkflow = file(".github/workflows/build.yml").text.replace("\r\n", "\n")
 		if (!buildWorkflow.contains("permissions:\n  contents: read")) {
 			throw new GradleException("Build workflow must keep the GitHub token scoped to contents: read.")
 		}
 
-		def releaseWorkflow = file(".github/workflows/release.yml").text
+		def releaseWorkflow = file(".github/workflows/release.yml").text.replace("\r\n", "\n")
 		if (!releaseWorkflow.contains("permissions:\n  contents: write")) {
 			throw new GradleException("Release workflow must declare the minimal write permission it needs.")
 		}
