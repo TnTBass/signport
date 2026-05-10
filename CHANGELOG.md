@@ -7,6 +7,10 @@ This project uses SemVer-style mod versions. Release entries should include the 
 ## Unreleased
 
 - Fixed source hygiene check failing on Windows due to CRLF line endings in workflow files.
+- Added tab-completion of anchor names (in the player's current dimension) for `/sp tp <name>` and `/sp anchor delete <name>`.
+- Paginated `/sp anchor list` with a clickable `[« Prev] page X/Y [Next »]` footer; out-of-range pages clamp to the last valid page.
+- Added an optional case-insensitive substring filter to `/sp anchor list [filter] [page]`; the page footer preserves the active filter.
+- Added `anchorListPageSize` config option (default 10) controlling how many anchors are shown per `/sp anchor list` page.
 
 ## 1.2.1+mc26.1.2 - 2026-05-10
 

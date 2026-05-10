@@ -38,7 +38,8 @@ class SignPortConfigTest {
                   "signUseDefault": false,
                   "protectedActionOpLevel": 3,
                   "crossDimensionPortalSigns": false,
-                  "safeTeleportSearch": false
+                  "safeTeleportSearch": false,
+                  "anchorListPageSize": 25
                 }
                 """);
 
@@ -49,6 +50,7 @@ class SignPortConfigTest {
         assertEquals(3, config.protectedActionOpLevel());
         assertFalse(config.crossDimensionPortalSigns());
         assertFalse(config.safeTeleportSearch());
+        assertEquals(25, config.anchorListPageSize());
     }
 
     @Test
@@ -60,7 +62,8 @@ class SignPortConfigTest {
                   "signUseDefault": "yes",
                   "protectedActionOpLevel": 12,
                   "crossDimensionPortalSigns": false,
-                  "safeTeleportSearch": false
+                  "safeTeleportSearch": false,
+                  "anchorListPageSize": 0
                 }
                 """);
 
@@ -71,6 +74,12 @@ class SignPortConfigTest {
         assertEquals(2, config.protectedActionOpLevel());
         assertFalse(config.crossDimensionPortalSigns());
         assertFalse(config.safeTeleportSearch());
+        assertEquals(10, config.anchorListPageSize());
+    }
+
+    @Test
+    void defaultAnchorListPageSizeIsTen() {
+        assertEquals(10, SignPortConfig.Values.defaults().anchorListPageSize());
     }
 
     @Test

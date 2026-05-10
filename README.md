@@ -11,7 +11,7 @@ Anchor management requires operator permission level 2.
 ```text
 /signport anchor create <name>
 /signport anchor create <name> <x> <y> <z>
-/signport anchor list
+/signport anchor list [filter] [page]
 /signport anchor delete <name>
 /signport anchor delete all
 ```
@@ -23,6 +23,8 @@ Players can teleport to an anchor by name:
 ```
 
 The shorter `/sp` alias can be used in place of `/signport`.
+
+`/sp anchor list` is paginated (page size configurable via `anchorListPageSize`, default 10). The optional `filter` is a case-insensitive substring match on anchor name. The footer's `[« Prev]` and `[Next »]` brackets are clickable to navigate pages and preserve the active filter. `/sp tp <name>` and `/sp anchor delete <name>` tab-complete from anchors in the player's current dimension.
 
 ## Portal Signs
 
@@ -82,6 +84,7 @@ On first server start, SignPort creates `config/signport.json` with the default 
 | `protectedActionOpLevel` | `2` | Operator level used for protected anchor commands, portal sign create/edit/break fallbacks, and anchor-list teleport links. |
 | `crossDimensionPortalSigns` | `true` | Allows portal signs to use line 4 as a dimension id when the anchor is not found in the current world. |
 | `safeTeleportSearch` | `true` | Searches for a safe standing position near an anchor before teleporting. When disabled, teleports use the anchor block center directly. |
+| `anchorListPageSize` | `10` | Number of anchors shown per page in `/sp anchor list`. Must be between 1 and 100. |
 
 ## Releases
 

@@ -55,7 +55,8 @@ public final class SignPortConfig {
                     readBoolean(object, "signUseDefault", defaults.signUseDefault(), logger),
                     readOpLevel(object, defaults.protectedActionOpLevel(), logger),
                     readBoolean(object, "crossDimensionPortalSigns", defaults.crossDimensionPortalSigns(), logger),
-                    readBoolean(object, "safeTeleportSearch", defaults.safeTeleportSearch(), logger)
+                    readBoolean(object, "safeTeleportSearch", defaults.safeTeleportSearch(), logger),
+                    readAnchorListPageSize(object, defaults.anchorListPageSize(), logger)
             );
         } catch (Exception exception) {
             logger.warn("Could not read SignPort config at {}; using defaults.", path, exception);
@@ -105,15 +106,31 @@ public final class SignPortConfig {
         return fallback;
     }
 
+    private static int readAnchorListPageSize(JsonObject object, int fallback, Logger logger) {
+        JsonElement element = object.get("anchorListPageSize");
+        if (element == null) return fallback;
+
+        if (element instanceof JsonPrimitive primitive && primitive.isNumber()) {
+            int value = primitive.getAsInt();
+            if (value >= 1 && value <= 100) {
+                return value;
+            }
+        }
+
+        logger.warn("SignPort config option 'anchorListPageSize' must be an integer from 1 to 100; using default {}.", fallback);
+        return fallback;
+    }
+
     public record Values(
             boolean teleportCommandDefault,
             boolean signUseDefault,
             int protectedActionOpLevel,
             boolean crossDimensionPortalSigns,
-            boolean safeTeleportSearch
+            boolean safeTeleportSearch,
+            int anchorListPageSize
     ) {
         public static Values defaults() {
-            return new Values(true, true, 2, true, true);
+            return new Values(true, true, 2, true, true, 10);
         }
     }
 }
