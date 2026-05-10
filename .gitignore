@@ -40,7 +40,10 @@ replay_*.log
 *.jfr
 
 # local publishing prep
-docs/modrinth-*
+docs/modrinth-publishing.md
+
+# local agent handoff notes
+AGENTS.md
 
 # local workspace notes and runtime logs
 prompts/
