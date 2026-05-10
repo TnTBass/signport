@@ -32,6 +32,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.stream.Stream;
 
 public class AnchorState extends SavedData {
@@ -70,6 +72,27 @@ public class AnchorState extends SavedData {
         return anchors.stream().filter(a -> a.dimension.equals(dimension)).toList();
     }
 
+    public List<Anchor> getAnchorsByGroup(ResourceKey<Level> dimension, String group) {
+        String normalizedGroup = normalizeGroup(group);
+        return anchors.stream()
+                .filter(a -> a.dimension.equals(dimension) && normalizeGroup(a.group).equals(normalizedGroup))
+                .toList();
+    }
+
+    public SortedSet<String> getGroupsForDimension(ResourceKey<Level> dimension) {
+        SortedSet<String> groups = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        anchors.stream()
+                .filter(a -> a.dimension.equals(dimension))
+                .map(a -> normalizeGroup(a.group))
+                .filter(group -> !group.isEmpty())
+                .forEach(groups::add);
+        return groups;
+    }
+
+    private static String normalizeGroup(String group) {
+        return group == null ? "" : group;
+    }
+
     // -------------------------------------------------------------------------
     // Mutations
     // -------------------------------------------------------------------------
@@ -95,6 +118,14 @@ public class AnchorState extends SavedData {
         if (anchors.removeIf(a -> a.dimension.equals(dimension))) setDirty();
     }
 
+    public boolean setAnchorGroup(String name, ResourceKey<Level> dimension, String group) {
+        Optional<Anchor> anchor = findAnchor(name, dimension);
+        if (anchor.isEmpty()) return false;
+        anchor.get().group = normalizeGroup(group);
+        setDirty();
+        return true;
+    }
+
     // -------------------------------------------------------------------------
     // Codec — writes v2_anchors; on load falls back to legacy "anchors" map
     // (overworld-only, no dimension field) and re-saves in v2 format.
@@ -109,7 +140,8 @@ public class AnchorState extends SavedData {
     private static final Codec<Anchor> ANCHOR_V2_CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.STRING.fieldOf("name").forGetter(a -> a.name),
             POS_CODEC.fieldOf("pos").forGetter(a -> a.pos),
-            ResourceKey.codec(Registries.DIMENSION).fieldOf("dimension").forGetter(a -> a.dimension))
+            ResourceKey.codec(Registries.DIMENSION).fieldOf("dimension").forGetter(a -> a.dimension),
+            Codec.STRING.optionalFieldOf("group", "").forGetter(Anchor::group))
             .apply(inst, Anchor::new));
 
     // Legacy map codec — used only to read old "anchors" field during migration
@@ -163,10 +195,12 @@ public class AnchorState extends SavedData {
         }
     };
 
+    static final Codec<AnchorState> CODEC = STATE_MAP_CODEC.codec();
+
     private static final SavedDataType<AnchorState> TYPE = new SavedDataType<>(
             Identifier.fromNamespaceAndPath(SignPort.MOD_ID, SignPort.MOD_ID),
             AnchorState::new,
-            STATE_MAP_CODEC.codec(),
+            CODEC,
             DataFixTypes.CHUNK);
 
     // -------------------------------------------------------------------------

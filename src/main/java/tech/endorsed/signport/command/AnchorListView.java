@@ -2,6 +2,7 @@ package tech.endorsed.signport.command;
 
 import tech.endorsed.signport.world.Anchor;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
@@ -20,6 +21,20 @@ public final class AnchorListView {
         return anchors.stream()
                 .filter(a -> a.name.toLowerCase(Locale.ROOT).contains(needle))
                 .toList();
+    }
+
+    /** Sorts anchors by group first, then anchor name; ungrouped anchors sort last. */
+    public static List<Anchor> sortByGroupThenName(List<Anchor> anchors) {
+        return anchors.stream()
+                .sorted(Comparator
+                        .comparing(AnchorListView::groupSortKey, String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(a -> a.name, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
+
+    private static String groupSortKey(Anchor anchor) {
+        if (anchor.group == null || anchor.group.isEmpty()) return "\uffff";
+        return anchor.group;
     }
 
     /** Total page count for {@code total} items at {@code pageSize} per page; minimum 1. */

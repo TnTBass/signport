@@ -40,7 +40,7 @@ public class SignPort implements ModInitializer {
 			} else {
 				Map<String, Long> byDimension = state.anchors.stream().collect(
 						Collectors.groupingBy(
-								a -> a.dimension.location().getPath(),
+								a -> a.dimension.identifier().getPath(),
 								LinkedHashMap::new,
 								Collectors.counting()));
 				String summary = byDimension.entrySet().stream()

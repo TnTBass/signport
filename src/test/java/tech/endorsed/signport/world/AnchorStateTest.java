@@ -1,10 +1,15 @@
 package tech.endorsed.signport.world;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -70,5 +75,98 @@ class AnchorStateTest {
         assertEquals(overworld, state.findAnchorIgnoreCase("fortress", OVERWORLD).orElseThrow());
         assertEquals(nether,    state.findAnchorIgnoreCase("fortress", NETHER).orElseThrow());
         assertEquals(overworld, state.findAnchorIgnoreCase("Fortress", OVERWORLD).orElseThrow());
+    }
+
+    @Test
+    void filtersAnchorsByGroupWithinDimension() {
+        AnchorState state = new AnchorState();
+        Anchor shop = new Anchor("diamond", new BlockPos(1, 64, 2), OVERWORLD, "shops");
+        Anchor base = new Anchor("north", new BlockPos(3, 65, 4), OVERWORLD, "bases");
+        Anchor netherShop = new Anchor("quartz", new BlockPos(5, 66, 6), NETHER, "shops");
+        Anchor ungrouped = new Anchor("lobby", new BlockPos(7, 67, 8), OVERWORLD);
+
+        state.addAnchor(shop);
+        state.addAnchor(base);
+        state.addAnchor(netherShop);
+        state.addAnchor(ungrouped);
+
+        assertEquals(List.of(shop), state.getAnchorsByGroup(OVERWORLD, "shops"));
+        assertEquals(List.of(ungrouped), state.getAnchorsByGroup(OVERWORLD, ""));
+    }
+
+    @Test
+    void groupsForDimensionAreDistinctSortedAndSkipUngrouped() {
+        AnchorState state = new AnchorState();
+        state.addAnchor(new Anchor("diamond", new BlockPos(1, 64, 2), OVERWORLD, "shops"));
+        state.addAnchor(new Anchor("emerald", new BlockPos(3, 65, 4), OVERWORLD, "shops"));
+        state.addAnchor(new Anchor("north", new BlockPos(5, 66, 6), OVERWORLD, "bases"));
+        state.addAnchor(new Anchor("lobby", new BlockPos(7, 67, 8), OVERWORLD));
+        state.addAnchor(new Anchor("quartz", new BlockPos(9, 68, 10), NETHER, "nether"));
+
+        assertEquals(List.of("bases", "shops"), List.copyOf(state.getGroupsForDimension(OVERWORLD)));
+    }
+
+    @Test
+    void setAnchorGroupUpdatesExistingAnchorWithoutChangingName() {
+        AnchorState state = new AnchorState();
+        Anchor anchor = new Anchor("diamond", new BlockPos(1, 64, 2), OVERWORLD, "shops");
+        state.addAnchor(anchor);
+
+        assertTrue(state.setAnchorGroup("diamond", OVERWORLD, "bases"));
+
+        Anchor moved = state.findAnchor("diamond", OVERWORLD).orElseThrow();
+        assertEquals("diamond", moved.name);
+        assertEquals("bases", moved.group);
+    }
+
+    @Test
+    void codecReadsPhaseOneAnchorsWithoutGroupAsUngrouped() {
+        AnchorState state = AnchorState.CODEC.parse(NbtOps.INSTANCE, stateTag(anchorTag("spawn", OVERWORLD, null)))
+                .result()
+                .orElseThrow();
+
+        Anchor anchor = state.findAnchor("spawn", OVERWORLD).orElseThrow();
+        assertEquals("", anchor.group);
+    }
+
+    @Test
+    void codecRoundTripsAnchorsWithGroup() {
+        AnchorState original = new AnchorState();
+        original.addAnchor(new Anchor("diamond", new BlockPos(1, 64, 2), OVERWORLD, "shops"));
+
+        var encoded = AnchorState.CODEC.encodeStart(NbtOps.INSTANCE, original).result().orElseThrow();
+        AnchorState decoded = AnchorState.CODEC.parse(NbtOps.INSTANCE, encoded).result().orElseThrow();
+
+        assertEquals("shops", decoded.findAnchor("diamond", OVERWORLD).orElseThrow().group);
+        assertTrue(encoded.toString().contains("group"));
+    }
+
+    private static CompoundTag stateTag(CompoundTag... anchors) {
+        CompoundTag state = new CompoundTag();
+        ListTag anchorList = new ListTag();
+        for (CompoundTag anchor : anchors) {
+            anchorList.add(anchor);
+        }
+        state.put("v2_anchors", anchorList);
+        return state;
+    }
+
+    private static CompoundTag anchorTag(String name, ResourceKey<Level> dimension, String group) {
+        CompoundTag anchor = new CompoundTag();
+        anchor.putString("name", name);
+        anchor.put("pos", posTag(1, 64, 2));
+        anchor.putString("dimension", dimension.identifier().toString());
+        if (group != null) {
+            anchor.putString("group", group);
+        }
+        return anchor;
+    }
+
+    private static CompoundTag posTag(int x, int y, int z) {
+        CompoundTag pos = new CompoundTag();
+        pos.putInt("xPos", x);
+        pos.putInt("yPos", y);
+        pos.putInt("zPos", z);
+        return pos;
     }
 }

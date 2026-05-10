@@ -10,7 +10,9 @@ Anchor management requires operator permission level 2.
 
 ```text
 /signport anchor create <name>
+/signport anchor create <name> <group>
 /signport anchor create <name> <x> <y> <z>
+/signport anchor setgroup <name> <group>
 /signport anchor list [filter] [page]
 /signport anchor delete <name>
 /signport anchor delete all
@@ -24,7 +26,9 @@ Players can teleport to an anchor by name:
 
 The shorter `/sp` alias can be used in place of `/signport`.
 
-`/sp anchor list` is paginated (page size configurable via `anchorListPageSize`, default 10). The optional `filter` is a case-insensitive substring match on anchor name. The footer's `[« Prev]` and `[Next »]` brackets are clickable to navigate pages and preserve the active filter. `/sp tp <name>` and `/sp anchor delete <name>` tab-complete from anchors in the player's current dimension.
+`/sp anchor create <name> <group>` stores the group as metadata; portal signs still reference only `<name>`. `/sp anchor setgroup <name> <group>` moves an existing anchor between groups without changing the sign-facing anchor name. Use `-` or `""` as the group to move an anchor back to `(ungrouped)`.
+
+`/sp anchor list` is paginated (page size configurable via `anchorListPageSize`, default 10). The optional `filter` is a case-insensitive substring match on anchor name. Anchors are sorted by group, then name, with group headers and counts shown above the rows on each page. The footer's `[« Prev]` and `[Next »]` brackets are clickable to navigate pages and preserve the active filter. `/sp tp <name>`, `/sp anchor delete <name>`, and `/sp anchor setgroup <name>` tab-complete from anchors in the player's current dimension; group arguments suggest existing groups.
 
 ## Portal Signs
 

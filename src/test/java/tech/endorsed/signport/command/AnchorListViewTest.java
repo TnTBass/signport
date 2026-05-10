@@ -22,6 +22,10 @@ class AnchorListViewTest {
         return new Anchor(name, new BlockPos(0, 64, 0), OVERWORLD);
     }
 
+    private static Anchor anchor(String name, String group) {
+        return new Anchor(name, new BlockPos(0, 64, 0), OVERWORLD, group);
+    }
+
     @Test
     void filterEmptyReturnsInput() {
         List<Anchor> input = List.of(anchor("spawn"), anchor("shop"));
@@ -65,5 +69,17 @@ class AnchorListViewTest {
     void sliceOutOfRangeIsEmpty() {
         List<Integer> items = List.of(1, 2, 3);
         assertTrue(AnchorListView.slice(items, 5, 3).isEmpty());
+    }
+
+    @Test
+    void sortByGroupThenNamePlacesUngroupedLast() {
+        List<Anchor> sorted = AnchorListView.sortByGroupThenName(List.of(
+                anchor("lobby"),
+                anchor("zoo", "shops"),
+                anchor("north", "bases"),
+                anchor("diamond", "shops")));
+
+        assertEquals(List.of("north", "diamond", "zoo", "lobby"),
+                sorted.stream().map(a -> a.name).toList());
     }
 }

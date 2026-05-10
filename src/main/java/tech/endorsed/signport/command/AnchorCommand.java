@@ -29,7 +29,9 @@ import tech.endorsed.signport.world.AnchorState;
 import tech.endorsed.signport.world.TeleportDestinationResolver;
 
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static net.minecraft.commands.Commands.literal;
@@ -41,6 +43,7 @@ public class AnchorCommand {
             = new SimpleCommandExceptionType(Component.translatable("commands.anchor.create.nameclash"));
     private static final SimpleCommandExceptionType UNKNOWN_NAME_EXCEPTION
             = new SimpleCommandExceptionType(Component.translatable("commands.anchor.delete.unknownname"));
+    private static final String CLEAR_GROUP_SENTINEL = "-";
 
     /** Suggests anchor names in the player's current dimension. */
     private static final SuggestionProvider<CommandSourceStack> ANCHOR_NAME_SUGGESTIONS = (context, builder) -> {
@@ -51,6 +54,21 @@ public class AnchorCommand {
                 .map(s -> s.getAnchorsForDimension(dim).stream().map(a -> a.name).toList())
                 .orElse(List.of());
         return SharedSuggestionProvider.suggest(names, builder);
+    };
+
+    /** Suggests existing group names in the player's current dimension, plus '-' to clear a group. */
+    private static final SuggestionProvider<CommandSourceStack> GROUP_SUGGESTIONS = (context, builder) -> {
+        var source = context.getSource();
+        var server = source.getServer();
+        var dim = source.getLevel().dimension();
+        List<String> groups = AnchorState.peekServerState(server)
+                .map(s -> {
+                    var suggestions = new java.util.ArrayList<>(s.getGroupsForDimension(dim));
+                    suggestions.add(CLEAR_GROUP_SENTINEL);
+                    return List.copyOf(suggestions);
+                })
+                .orElse(List.of(CLEAR_GROUP_SENTINEL));
+        return SharedSuggestionProvider.suggest(groups, builder);
     };
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
@@ -86,9 +104,34 @@ public class AnchorCommand {
                                 .then(literal("create")
                                         .requires(SignPortPermissions::canCreateAnchor)
                                         .then(Commands.argument("name", StringArgumentType.word())
-                                                .executes(context -> AnchorCommand.createAnchor(context.getSource(), StringArgumentType.getString(context, "name"), null))
+                                                .executes(context -> AnchorCommand.createAnchor(
+                                                        context.getSource(),
+                                                        StringArgumentType.getString(context, "name"),
+                                                        null,
+                                                        ""))
+                                                .then(Commands.argument("group", StringArgumentType.word())
+                                                        .suggests(GROUP_SUGGESTIONS)
+                                                        .executes(context -> AnchorCommand.createAnchor(
+                                                                context.getSource(),
+                                                                StringArgumentType.getString(context, "name"),
+                                                                null,
+                                                                StringArgumentType.getString(context, "group"))))
                                                 .then(Commands.argument("pos", BlockPosArgument.blockPos())
-                                                        .executes(context -> AnchorCommand.createAnchor(context.getSource(), StringArgumentType.getString(context, "name"), BlockPosArgument.getLoadedBlockPos(context, "pos"))))))));
+                                                        .executes(context -> AnchorCommand.createAnchor(
+                                                                context.getSource(),
+                                                                StringArgumentType.getString(context, "name"),
+                                                                BlockPosArgument.getLoadedBlockPos(context, "pos"),
+                                                                "")))))
+                                .then(literal("setgroup")
+                                        .requires(SignPortPermissions::canCreateAnchor)
+                                        .then(Commands.argument("name", StringArgumentType.word())
+                                                .suggests(ANCHOR_NAME_SUGGESTIONS)
+                                                .then(Commands.argument("group", StringArgumentType.string())
+                                                        .suggests(GROUP_SUGGESTIONS)
+                                                        .executes(context -> AnchorCommand.setGroup(
+                                                                context.getSource(),
+                                                                StringArgumentType.getString(context, "name"),
+                                                                StringArgumentType.getString(context, "group"))))))));
 
         dispatcher.register(literal("sp")
                 .redirect(literalCommandNode));
@@ -125,7 +168,7 @@ public class AnchorCommand {
         return 0;
     }
 
-    public static int createAnchor(CommandSourceStack source, String name, BlockPos pos) throws CommandSyntaxException {
+    public static int createAnchor(CommandSourceStack source, String name, BlockPos pos, String group) throws CommandSyntaxException {
         ServerPlayer player = source.getPlayer();
         if (player == null) return 0;
 
@@ -138,11 +181,36 @@ public class AnchorCommand {
             if (anchor.pos.equals(aPos)) throw CREATE_FAILED_EXCEPTION.create();
         }
 
-        Anchor anchor = new Anchor(name, aPos, dim);
+        String normalizedGroup = normalizeGroup(group);
+        Anchor anchor = new Anchor(name, aPos, dim, normalizedGroup);
         anchorState.addAnchor(anchor);
 
-        player.sendSystemMessage(Component.literal("Created anchor '%s'".formatted(name)));
+        if (normalizedGroup.isEmpty()) {
+            player.sendSystemMessage(Component.literal("Created anchor '%s'".formatted(name)));
+        } else {
+            player.sendSystemMessage(Component.literal("Created anchor '%s' in group '%s'".formatted(name, normalizedGroup)));
+        }
 
+        return 1;
+    }
+
+    public static int setGroup(CommandSourceStack source, String name, String group) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayer();
+        if (player == null) return 0;
+
+        var dim = source.getLevel().dimension();
+        AnchorState anchorState = AnchorState.getServerState(source.getServer());
+        String normalizedGroup = normalizeGroup(group);
+
+        if (!anchorState.setAnchorGroup(name, dim, normalizedGroup)) {
+            throw UNKNOWN_NAME_EXCEPTION.create();
+        }
+
+        if (normalizedGroup.isEmpty()) {
+            player.sendSystemMessage(Component.literal("Moved anchor '%s' to (ungrouped)".formatted(name)));
+        } else {
+            player.sendSystemMessage(Component.literal("Moved anchor '%s' to group '%s'".formatted(name, normalizedGroup)));
+        }
         return 1;
     }
 
@@ -175,7 +243,7 @@ public class AnchorCommand {
         List<Anchor> dimAnchors = AnchorState.peekServerState(source.getServer())
                 .map(s -> s.getAnchorsForDimension(dim))
                 .orElse(List.of());
-        List<Anchor> matched = AnchorListView.filter(dimAnchors, filter);
+        List<Anchor> matched = AnchorListView.sortByGroupThenName(AnchorListView.filter(dimAnchors, filter));
 
         if (matched.isEmpty()) {
             if (filter == null || filter.isEmpty()) {
@@ -195,10 +263,19 @@ public class AnchorCommand {
                 && pls.level().isEqualOrHigherThan(PermissionLevel.byId(SignPortConfig.get().protectedActionOpLevel()));
 
         int startIndex = (page - 1) * pageSize + 1;
+        Map<String, Integer> groupCounts = groupCounts(matched);
+        String lastGroup = null;
         for (int i = 0; i < pageAnchors.size(); i++) {
             Anchor anchor = pageAnchors.get(i);
-            MutableComponent message = Component.literal("[%d] %s [%d, %d, %d]"
-                    .formatted(startIndex + i, anchor.name, anchor.pos.getX(), anchor.pos.getY(), anchor.pos.getZ()));
+            String group = normalizeGroup(anchor.group);
+            if (!group.equals(lastGroup)) {
+                player.sendSystemMessage(Component.literal("%s (%d)"
+                        .formatted(groupLabel(group), groupCounts.getOrDefault(group, 0))));
+                lastGroup = group;
+            }
+
+            MutableComponent message = Component.literal("  [%d] %s [%d, %d, %d]"
+                    .formatted(startIndex + i, displayName(anchor), anchor.pos.getX(), anchor.pos.getY(), anchor.pos.getZ()));
 
             if (canTeleport) {
                 message = message.setStyle(
@@ -243,5 +320,28 @@ public class AnchorCommand {
             return "/sp anchor list %d".formatted(page);
         }
         return "/sp anchor list %s %d".formatted(filter, page);
+    }
+
+    private static Map<String, Integer> groupCounts(List<Anchor> anchors) {
+        Map<String, Integer> counts = new HashMap<>();
+        for (Anchor anchor : anchors) {
+            counts.merge(normalizeGroup(anchor.group), 1, Integer::sum);
+        }
+        return counts;
+    }
+
+    private static String normalizeGroup(String group) {
+        if (group == null || group.equals(CLEAR_GROUP_SENTINEL)) return "";
+        return group;
+    }
+
+    private static String groupLabel(String group) {
+        return group.isEmpty() ? "(ungrouped)" : group;
+    }
+
+    private static String displayName(Anchor anchor) {
+        String group = normalizeGroup(anchor.group);
+        if (group.isEmpty()) return anchor.name;
+        return "%s/%s".formatted(group, anchor.name);
     }
 }
