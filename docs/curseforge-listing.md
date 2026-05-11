@@ -31,7 +31,9 @@ Original project by [approved (GitHub)](https://github.com/approved) - [approved
 - Line 1: Nether Hub
 - Line 2: `[signport]`
 - Line 3: hub
-- Line 4: the_nether
+- Line 4: nether
+
+Accepted dimension values for line 4: `overworld`, `nether`, `end`, `the_nether`, `the_end`, or any full namespace ID like `minecraft:overworld` or `mymod:custom_dimension`.
 
 ## Commands
 
@@ -59,7 +61,6 @@ SignPort works with LuckPerms through `fabric-permissions-api`. If no permission
 
 ## Requirements
 
-- Minecraft 26.1.2
 - Fabric Loader
 - Fabric API
 - Java 25

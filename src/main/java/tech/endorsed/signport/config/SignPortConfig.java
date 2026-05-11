@@ -56,7 +56,9 @@ public final class SignPortConfig {
                     readOpLevel(object, defaults.protectedActionOpLevel(), logger),
                     readBoolean(object, "crossDimensionPortalSigns", defaults.crossDimensionPortalSigns(), logger),
                     readBoolean(object, "safeTeleportSearch", defaults.safeTeleportSearch(), logger),
-                    readAnchorListPageSize(object, defaults.anchorListPageSize(), logger)
+                    readBoundedInt(object, "anchorListPageSize", defaults.anchorListPageSize(), 1, 100, logger),
+                    readBoundedInt(object, "defaultNearRadius", defaults.defaultNearRadius(), 1, 10000, logger),
+                    readBoolean(object, "bluemapEnabled", defaults.bluemapEnabled(), logger)
             );
         } catch (Exception exception) {
             logger.warn("Could not read SignPort config at {}; using defaults.", path, exception);
@@ -106,18 +108,19 @@ public final class SignPortConfig {
         return fallback;
     }
 
-    private static int readAnchorListPageSize(JsonObject object, int fallback, Logger logger) {
-        JsonElement element = object.get("anchorListPageSize");
+    private static int readBoundedInt(JsonObject object, String key, int fallback, int min, int max, Logger logger) {
+        JsonElement element = object.get(key);
         if (element == null) return fallback;
 
         if (element instanceof JsonPrimitive primitive && primitive.isNumber()) {
             int value = primitive.getAsInt();
-            if (value >= 1 && value <= 100) {
+            if (value >= min && value <= max) {
                 return value;
             }
         }
 
-        logger.warn("SignPort config option 'anchorListPageSize' must be an integer from 1 to 100; using default {}.", fallback);
+        logger.warn("SignPort config option '{}' must be an integer from {} to {}; using default {}.",
+                key, min, max, fallback);
         return fallback;
     }
 
@@ -127,10 +130,12 @@ public final class SignPortConfig {
             int protectedActionOpLevel,
             boolean crossDimensionPortalSigns,
             boolean safeTeleportSearch,
-            int anchorListPageSize
+            int anchorListPageSize,
+            int defaultNearRadius,
+            boolean bluemapEnabled
     ) {
         public static Values defaults() {
-            return new Values(true, true, 2, true, true, 10);
+            return new Values(true, true, 2, true, true, 10, 128, true);
         }
     }
 }

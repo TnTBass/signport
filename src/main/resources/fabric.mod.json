@@ -28,5 +28,8 @@
 		"java": ">=25",
 		"fabric-api": "*",
 		"fabric-permissions-api-v0": "*"
+	},
+	"recommends": {
+		"bluemap": ">=5"
 	}
 }

@@ -109,7 +109,7 @@ class AnchorStateTest {
     @Test
     void setAnchorGroupUpdatesExistingAnchorWithoutChangingName() {
         AnchorState state = new AnchorState();
-        Anchor anchor = new Anchor("diamond", new BlockPos(1, 64, 2), OVERWORLD, "shops");
+        Anchor anchor = new Anchor("diamond", new BlockPos(1, 64, 2), OVERWORLD, "shops", 1234L);
         state.addAnchor(anchor);
 
         assertTrue(state.setAnchorGroup("diamond", OVERWORLD, "bases"));
@@ -117,6 +117,7 @@ class AnchorStateTest {
         Anchor moved = state.findAnchor("diamond", OVERWORLD).orElseThrow();
         assertEquals("diamond", moved.name);
         assertEquals("bases", moved.group);
+        assertEquals(1234L, moved.createdAt);
     }
 
     @Test
@@ -127,18 +128,31 @@ class AnchorStateTest {
 
         Anchor anchor = state.findAnchor("spawn", OVERWORLD).orElseThrow();
         assertEquals("", anchor.group);
+        assertEquals(0L, anchor.createdAt);
     }
 
     @Test
     void codecRoundTripsAnchorsWithGroup() {
         AnchorState original = new AnchorState();
-        original.addAnchor(new Anchor("diamond", new BlockPos(1, 64, 2), OVERWORLD, "shops"));
+        original.addAnchor(new Anchor("diamond", new BlockPos(1, 64, 2), OVERWORLD, "shops", 1234L));
 
         var encoded = AnchorState.CODEC.encodeStart(NbtOps.INSTANCE, original).result().orElseThrow();
         AnchorState decoded = AnchorState.CODEC.parse(NbtOps.INSTANCE, encoded).result().orElseThrow();
 
         assertEquals("shops", decoded.findAnchor("diamond", OVERWORLD).orElseThrow().group);
+        assertEquals(1234L, decoded.findAnchor("diamond", OVERWORLD).orElseThrow().createdAt);
         assertTrue(encoded.toString().contains("group"));
+        assertTrue(encoded.toString().contains("createdAt"));
+    }
+
+    @Test
+    void addAnchorStampsCreatedAtWhenMissing() {
+        AnchorState state = new AnchorState();
+        Anchor anchor = new Anchor("spawn", new BlockPos(1, 64, 2), OVERWORLD);
+
+        state.addAnchor(anchor);
+
+        assertTrue(state.findAnchor("spawn", OVERWORLD).orElseThrow().createdAt > 0L);
     }
 
     private static CompoundTag stateTag(CompoundTag... anchors) {

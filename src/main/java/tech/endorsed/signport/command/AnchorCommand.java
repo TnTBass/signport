@@ -22,6 +22,7 @@ import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.world.entity.Relative;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.ChatFormatting;
+import tech.endorsed.signport.bluemap.BlueMapIntegration;
 import tech.endorsed.signport.config.SignPortConfig;
 import tech.endorsed.signport.permission.SignPortPermissions;
 import tech.endorsed.signport.world.Anchor;
@@ -44,6 +45,21 @@ public class AnchorCommand {
     private static final SimpleCommandExceptionType UNKNOWN_NAME_EXCEPTION
             = new SimpleCommandExceptionType(Component.translatable("commands.anchor.delete.unknownname"));
     private static final String CLEAR_GROUP_SENTINEL = "-";
+    private enum AnchorSort {
+        NAME("name"),
+        DISTANCE("distance"),
+        RECENT("recent");
+
+        private final String flagValue;
+
+        AnchorSort(String flagValue) {
+            this.flagValue = flagValue;
+        }
+
+        String flag() {
+            return "--sort=" + flagValue;
+        }
+    }
 
     /** Suggests anchor names in the player's current dimension. */
     private static final SuggestionProvider<CommandSourceStack> ANCHOR_NAME_SUGGESTIONS = (context, builder) -> {
@@ -82,19 +98,52 @@ public class AnchorCommand {
                         .then(literal("anchor")
                                 .then(literal("list")
                                         .requires(SignPortPermissions::canListAnchors)
-                                        .executes(context -> AnchorCommand.listAnchors(context.getSource(), "", 1))
+                                        .executes(context -> AnchorCommand.listAnchors(context.getSource(), "", 1, AnchorSort.NAME))
+                                        .then(sortLiteral("--sort=name", AnchorSort.NAME, "", 1))
+                                        .then(sortLiteral("--sort=distance", AnchorSort.DISTANCE, "", 1))
+                                        .then(sortLiteral("--sort=recent", AnchorSort.RECENT, "", 1))
                                         // /sp anchor list <page> — numeric arg is treated as page
                                         .then(Commands.argument("page", IntegerArgumentType.integer(1))
                                                 .executes(context -> AnchorCommand.listAnchors(
-                                                        context.getSource(), "", IntegerArgumentType.getInteger(context, "page"))))
+                                                        context.getSource(), "", IntegerArgumentType.getInteger(context, "page"), AnchorSort.NAME))
+                                                .then(literal("--sort=name")
+                                                        .executes(context -> AnchorCommand.listAnchors(context.getSource(), "", IntegerArgumentType.getInteger(context, "page"), AnchorSort.NAME)))
+                                                .then(literal("--sort=distance")
+                                                        .executes(context -> AnchorCommand.listAnchors(context.getSource(), "", IntegerArgumentType.getInteger(context, "page"), AnchorSort.DISTANCE)))
+                                                .then(literal("--sort=recent")
+                                                        .executes(context -> AnchorCommand.listAnchors(context.getSource(), "", IntegerArgumentType.getInteger(context, "page"), AnchorSort.RECENT))))
                                         // /sp anchor list <filter> [page] — non-numeric arg is treated as substring filter
                                         .then(Commands.argument("filter", StringArgumentType.word())
                                                 .executes(context -> AnchorCommand.listAnchors(
-                                                        context.getSource(), StringArgumentType.getString(context, "filter"), 1))
+                                                        context.getSource(), StringArgumentType.getString(context, "filter"), 1, AnchorSort.NAME))
+                                                .then(literal("--sort=name")
+                                                        .executes(context -> AnchorCommand.listAnchors(context.getSource(), StringArgumentType.getString(context, "filter"), 1, AnchorSort.NAME)))
+                                                .then(literal("--sort=distance")
+                                                        .executes(context -> AnchorCommand.listAnchors(context.getSource(), StringArgumentType.getString(context, "filter"), 1, AnchorSort.DISTANCE)))
+                                                .then(literal("--sort=recent")
+                                                        .executes(context -> AnchorCommand.listAnchors(context.getSource(), StringArgumentType.getString(context, "filter"), 1, AnchorSort.RECENT)))
                                                 .then(Commands.argument("page", IntegerArgumentType.integer(1))
                                                         .executes(context -> AnchorCommand.listAnchors(
                                                                 context.getSource(),
                                                                 StringArgumentType.getString(context, "filter"),
+                                                                IntegerArgumentType.getInteger(context, "page"), AnchorSort.NAME))
+                                                        .then(literal("--sort=name")
+                                                                .executes(context -> AnchorCommand.listAnchors(context.getSource(), StringArgumentType.getString(context, "filter"), IntegerArgumentType.getInteger(context, "page"), AnchorSort.NAME)))
+                                                        .then(literal("--sort=distance")
+                                                                .executes(context -> AnchorCommand.listAnchors(context.getSource(), StringArgumentType.getString(context, "filter"), IntegerArgumentType.getInteger(context, "page"), AnchorSort.DISTANCE)))
+                                                        .then(literal("--sort=recent")
+                                                                .executes(context -> AnchorCommand.listAnchors(context.getSource(), StringArgumentType.getString(context, "filter"), IntegerArgumentType.getInteger(context, "page"), AnchorSort.RECENT))))))
+                                .then(literal("near")
+                                        .requires(SignPortPermissions::canListAnchors)
+                                        .executes(context -> AnchorCommand.nearAnchors(
+                                                context.getSource(), SignPortConfig.get().defaultNearRadius(), 1))
+                                        .then(Commands.argument("radius", IntegerArgumentType.integer(1))
+                                                .executes(context -> AnchorCommand.nearAnchors(
+                                                        context.getSource(), IntegerArgumentType.getInteger(context, "radius"), 1))
+                                                .then(Commands.argument("page", IntegerArgumentType.integer(1))
+                                                        .executes(context -> AnchorCommand.nearAnchors(
+                                                                context.getSource(),
+                                                                IntegerArgumentType.getInteger(context, "radius"),
                                                                 IntegerArgumentType.getInteger(context, "page"))))))
                                 .then(literal("delete")
                                         .requires(SignPortPermissions::canDeleteAnchor)
@@ -184,6 +233,7 @@ public class AnchorCommand {
         String normalizedGroup = normalizeGroup(group);
         Anchor anchor = new Anchor(name, aPos, dim, normalizedGroup);
         anchorState.addAnchor(anchor);
+        BlueMapIntegration.anchorCreated(source.getServer(), anchor);
 
         if (normalizedGroup.isEmpty()) {
             player.sendSystemMessage(Component.literal("Created anchor '%s'".formatted(name)));
@@ -205,6 +255,8 @@ public class AnchorCommand {
         if (!anchorState.setAnchorGroup(name, dim, normalizedGroup)) {
             throw UNKNOWN_NAME_EXCEPTION.create();
         }
+        anchorState.findAnchor(name, dim).ifPresent(anchor ->
+                BlueMapIntegration.anchorUpdated(source.getServer(), anchor));
 
         if (normalizedGroup.isEmpty()) {
             player.sendSystemMessage(Component.literal("Moved anchor '%s' to (ungrouped)".formatted(name)));
@@ -221,13 +273,17 @@ public class AnchorCommand {
         var dim = source.getLevel().dimension();
         AnchorState anchorState = AnchorState.getServerState(source.getServer());
 
+        Optional<Anchor> deleted = anchorState.findAnchor(name, dim);
         if (anchorState.deleteAnchor(name, dim)) {
+            deleted.ifPresent(anchor ->
+                    BlueMapIntegration.anchorDeleted(source.getServer(), dim, anchor.name));
             player.sendSystemMessage(Component.literal("Deleted anchor '%s'".formatted(name)));
             return 1;
         }
 
         if (name.equalsIgnoreCase("all")) {
             anchorState.clearAnchors(dim);
+            BlueMapIntegration.anchorsCleared(source.getServer(), dim);
             player.sendSystemMessage(Component.literal("Deleted ALL anchors"));
             return 1;
         }
@@ -236,6 +292,10 @@ public class AnchorCommand {
     }
 
     public static int listAnchors(CommandSourceStack source, String filter, int requestedPage) {
+        return listAnchors(source, filter, requestedPage, AnchorSort.NAME);
+    }
+
+    private static int listAnchors(CommandSourceStack source, String filter, int requestedPage, AnchorSort sort) {
         ServerPlayer player = source.getPlayer();
         if (player == null) return 0;
 
@@ -243,7 +303,7 @@ public class AnchorCommand {
         List<Anchor> dimAnchors = AnchorState.peekServerState(source.getServer())
                 .map(s -> s.getAnchorsForDimension(dim))
                 .orElse(List.of());
-        List<Anchor> matched = AnchorListView.sortByGroupThenName(AnchorListView.filter(dimAnchors, filter));
+        List<Anchor> matched = sortAnchors(AnchorListView.filter(dimAnchors, filter), sort, player.blockPosition());
 
         if (matched.isEmpty()) {
             if (filter == null || filter.isEmpty()) {
@@ -254,6 +314,39 @@ public class AnchorCommand {
             return 1;
         }
 
+        return sendAnchorPage(player, matched, requestedPage, filter, sort, false, 0);
+    }
+
+    public static int nearAnchors(CommandSourceStack source, int radius, int requestedPage) {
+        ServerPlayer player = source.getPlayer();
+        if (player == null) return 0;
+
+        BlockPos origin = player.blockPosition();
+        double radiusSquared = (double) radius * radius;
+        List<Anchor> matched = AnchorState.peekServerState(source.getServer())
+                .map(s -> s.getAnchorsForDimension(source.getLevel().dimension()))
+                .orElse(List.of())
+                .stream()
+                .filter(anchor -> anchor.pos.distSqr(origin) <= radiusSquared)
+                .toList();
+        matched = AnchorListView.groupByFirstOccurrence(AnchorListView.sortByDistance(matched, origin));
+
+        if (matched.isEmpty()) {
+            player.sendSystemMessage(Component.literal("No anchors within %d blocks".formatted(radius)));
+            return 1;
+        }
+
+        return sendAnchorPage(player, matched, requestedPage, "", AnchorSort.DISTANCE, true, radius);
+    }
+
+    private static int sendAnchorPage(
+            ServerPlayer player,
+            List<Anchor> matched,
+            int requestedPage,
+            String filter,
+            AnchorSort sort,
+            boolean near,
+            int radius) {
         int pageSize = SignPortConfig.get().anchorListPageSize();
         int totalPages = AnchorListView.totalPages(matched.size(), pageSize);
         int page = AnchorListView.clampPage(requestedPage, totalPages);
@@ -274,8 +367,7 @@ public class AnchorCommand {
                 lastGroup = group;
             }
 
-            MutableComponent message = Component.literal("  [%d] %s [%d, %d, %d]"
-                    .formatted(startIndex + i, displayName(anchor), anchor.pos.getX(), anchor.pos.getY(), anchor.pos.getZ()));
+            MutableComponent message = anchorRow(startIndex + i, anchor, player.blockPosition(), sort == AnchorSort.DISTANCE);
 
             if (canTeleport) {
                 message = message.setStyle(
@@ -286,12 +378,35 @@ public class AnchorCommand {
             player.sendSystemMessage(message);
         }
 
-        player.sendSystemMessage(buildPaginationFooter(page, totalPages, filter));
+        player.sendSystemMessage(buildPaginationFooter(page, totalPages, filter, sort, near, radius));
 
         return pageAnchors.size();
     }
 
-    private static MutableComponent buildPaginationFooter(int page, int totalPages, String filter) {
+    private static List<Anchor> sortAnchors(List<Anchor> anchors, AnchorSort sort, BlockPos origin) {
+        return switch (sort) {
+            case NAME -> AnchorListView.sortByGroupThenName(anchors);
+            case DISTANCE -> AnchorListView.groupByFirstOccurrence(AnchorListView.sortByDistance(anchors, origin));
+            case RECENT -> AnchorListView.groupByFirstOccurrence(AnchorListView.sortByRecent(anchors));
+        };
+    }
+
+    private static MutableComponent anchorRow(int index, Anchor anchor, BlockPos origin, boolean showDistance) {
+        String base = "  [%d] %s [%d, %d, %d]"
+                .formatted(index, displayName(anchor), anchor.pos.getX(), anchor.pos.getY(), anchor.pos.getZ());
+        if (!showDistance) {
+            return Component.literal(base);
+        }
+        return Component.literal("%s - %dm".formatted(base, Math.round(Math.sqrt(anchor.pos.distSqr(origin)))));
+    }
+
+    private static MutableComponent buildPaginationFooter(
+            int page,
+            int totalPages,
+            String filter,
+            AnchorSort sort,
+            boolean near,
+            int radius) {
         boolean hasPrev = page > 1;
         boolean hasNext = page < totalPages;
 
@@ -299,14 +414,14 @@ public class AnchorCommand {
                 .setStyle(Style.EMPTY.withColor(hasPrev ? ChatFormatting.AQUA : ChatFormatting.DARK_GRAY));
         if (hasPrev) {
             prev = prev.setStyle(prev.getStyle().withClickEvent(
-                    new ClickEvent.RunCommand(rerunCommand(page - 1, filter))));
+                    new ClickEvent.RunCommand(rerunCommand(page - 1, filter, sort, near, radius))));
         }
 
         MutableComponent next = Component.literal("[Next »]")
                 .setStyle(Style.EMPTY.withColor(hasNext ? ChatFormatting.AQUA : ChatFormatting.DARK_GRAY));
         if (hasNext) {
             next = next.setStyle(next.getStyle().withClickEvent(
-                    new ClickEvent.RunCommand(rerunCommand(page + 1, filter))));
+                    new ClickEvent.RunCommand(rerunCommand(page + 1, filter, sort, near, radius))));
         }
 
         return Component.empty()
@@ -315,11 +430,28 @@ public class AnchorCommand {
                 .append(next);
     }
 
-    private static String rerunCommand(int page, String filter) {
-        if (filter == null || filter.isEmpty()) {
-            return "/sp anchor list %d".formatted(page);
+    private static String rerunCommand(int page, String filter, AnchorSort sort, boolean near, int radius) {
+        if (near) {
+            return "/sp anchor near %d %d".formatted(radius, page);
         }
-        return "/sp anchor list %s %d".formatted(filter, page);
+        if (filter == null || filter.isEmpty()) {
+            if (sort == AnchorSort.NAME) {
+                return "/sp anchor list %d".formatted(page);
+            }
+            return "/sp anchor list %d %s".formatted(page, sort.flag());
+        }
+        if (sort == AnchorSort.NAME) {
+            return "/sp anchor list %s %d".formatted(filter, page);
+        }
+        return "/sp anchor list %s %d %s".formatted(filter, page, sort.flag());
+    }
+
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> sortLiteral(
+            String flagLiteral,
+            AnchorSort sort,
+            String filter,
+            int page) {
+        return literal(flagLiteral).executes(context -> AnchorCommand.listAnchors(context.getSource(), filter, page, sort));
     }
 
     private static Map<String, Integer> groupCounts(List<Anchor> anchors) {

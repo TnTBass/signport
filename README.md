@@ -13,7 +13,8 @@ Anchor management requires operator permission level 2.
 /signport anchor create <name> <group>
 /signport anchor create <name> <x> <y> <z>
 /signport anchor setgroup <name> <group>
-/signport anchor list [filter] [page]
+/signport anchor list [filter] [page] [--sort=name|distance|recent]
+/signport anchor near [radius] [page]
 /signport anchor delete <name>
 /signport anchor delete all
 ```
@@ -28,7 +29,17 @@ The shorter `/sp` alias can be used in place of `/signport`.
 
 `/sp anchor create <name> <group>` stores the group as metadata; portal signs still reference only `<name>`. `/sp anchor setgroup <name> <group>` moves an existing anchor between groups without changing the sign-facing anchor name. Use `-` or `""` as the group to move an anchor back to `(ungrouped)`.
 
-`/sp anchor list` is paginated (page size configurable via `anchorListPageSize`, default 10). The optional `filter` is a case-insensitive substring match on anchor name. Anchors are sorted by group, then name, with group headers and counts shown above the rows on each page. The footer's `[« Prev]` and `[Next »]` brackets are clickable to navigate pages and preserve the active filter. `/sp tp <name>`, `/sp anchor delete <name>`, and `/sp anchor setgroup <name>` tab-complete from anchors in the player's current dimension; group arguments suggest existing groups.
+`/sp anchor list` is paginated (page size configurable via `anchorListPageSize`, default 10). The optional `filter` is a case-insensitive substring match on anchor name. By default anchors are sorted by group, then name, with group headers and counts shown above the rows on each page. Add `--sort=distance` to sort anchors in the current dimension by distance from you and show a distance column, or `--sort=recent` to show newly created anchors first. The footer's `[« Prev]` and `[Next »]` brackets are clickable to navigate pages and preserve the active filter and sort.
+
+`/sp anchor near [radius]` lists anchors in your current dimension within the given radius, sorted nearest first and grouped like the main list. If `radius` is omitted, SignPort uses `defaultNearRadius`.
+
+`/sp tp <name>`, `/sp anchor delete <name>`, and `/sp anchor setgroup <name>` tab-complete from anchors in the player's current dimension; group arguments suggest existing groups.
+
+## BlueMap Integration
+
+When BlueMap is installed on the server, SignPort publishes anchors as POI markers on each BlueMap world map. Markers are grouped under "SignPort Anchors", show the anchor group (or `ungrouped`) and dimension in the popup, and include the in-game teleport command `/sp tp <name>`.
+
+BlueMap is optional. SignPort runs normally without it, and server packs that want to require BlueMap can enforce that in their own modpack metadata. Set `bluemapEnabled` to `false` in `config/signport.json` to disable marker registration while keeping BlueMap installed.
 
 ## Portal Signs
 
@@ -89,6 +100,8 @@ On first server start, SignPort creates `config/signport.json` with the default 
 | `crossDimensionPortalSigns` | `true` | Allows portal signs to use line 4 as a dimension id when the anchor is not found in the current world. |
 | `safeTeleportSearch` | `true` | Searches for a safe standing position near an anchor before teleporting. When disabled, teleports use the anchor block center directly. |
 | `anchorListPageSize` | `10` | Number of anchors shown per page in `/sp anchor list`. Must be between 1 and 100. |
+| `defaultNearRadius` | `128` | Radius used by `/sp anchor near` when no radius is provided. Must be between 1 and 10000. |
+| `bluemapEnabled` | `true` | Enables SignPort anchor markers when BlueMap is installed. |
 
 ## Releases
 

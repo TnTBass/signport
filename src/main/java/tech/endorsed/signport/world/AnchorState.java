@@ -98,6 +98,9 @@ public class AnchorState extends SavedData {
     // -------------------------------------------------------------------------
 
     public void addAnchor(Anchor anchor) {
+        if (anchor.createdAt == 0L) {
+            anchor.createdAt = System.currentTimeMillis();
+        }
         anchors.add(anchor);
         setDirty();
     }
@@ -141,7 +144,8 @@ public class AnchorState extends SavedData {
             Codec.STRING.fieldOf("name").forGetter(a -> a.name),
             POS_CODEC.fieldOf("pos").forGetter(a -> a.pos),
             ResourceKey.codec(Registries.DIMENSION).fieldOf("dimension").forGetter(a -> a.dimension),
-            Codec.STRING.optionalFieldOf("group", "").forGetter(Anchor::group))
+            Codec.STRING.optionalFieldOf("group", "").forGetter(Anchor::group),
+            Codec.LONG.optionalFieldOf("createdAt", 0L).forGetter(Anchor::createdAt))
             .apply(inst, Anchor::new));
 
     // Legacy map codec — used only to read old "anchors" field during migration
@@ -274,8 +278,11 @@ public class AnchorState extends SavedData {
                 int count = 0;
                 if (anchorsOpt.isPresent()) {
                     for (var kv : anchorsOpt.get().entrySet()) {
-                        state.addAnchor(new Anchor(kv.getKey(), kv.getValue(), entry.dimension()));
+                        state.anchors.add(new Anchor(kv.getKey(), kv.getValue(), entry.dimension()));
                         count++;
+                    }
+                    if (count > 0) {
+                        state.setDirty();
                     }
                 }
 

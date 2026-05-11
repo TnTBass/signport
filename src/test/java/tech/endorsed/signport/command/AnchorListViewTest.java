@@ -22,8 +22,16 @@ class AnchorListViewTest {
         return new Anchor(name, new BlockPos(0, 64, 0), OVERWORLD);
     }
 
+    private static Anchor anchor(String name, BlockPos pos) {
+        return new Anchor(name, pos, OVERWORLD);
+    }
+
     private static Anchor anchor(String name, String group) {
         return new Anchor(name, new BlockPos(0, 64, 0), OVERWORLD, group);
+    }
+
+    private static Anchor anchor(String name, long createdAt) {
+        return new Anchor(name, new BlockPos(0, 64, 0), OVERWORLD, "", createdAt);
     }
 
     @Test
@@ -81,5 +89,40 @@ class AnchorListViewTest {
 
         assertEquals(List.of("north", "diamond", "zoo", "lobby"),
                 sorted.stream().map(a -> a.name).toList());
+    }
+
+    @Test
+    void sortByDistancePlacesNearestFirst() {
+        List<Anchor> sorted = AnchorListView.sortByDistance(List.of(
+                anchor("far", new BlockPos(30, 64, 0)),
+                anchor("near", new BlockPos(3, 64, 4)),
+                anchor("same", new BlockPos(0, 64, 0))),
+                new BlockPos(0, 64, 0));
+
+        assertEquals(List.of("same", "near", "far"), sorted.stream().map(a -> a.name).toList());
+    }
+
+    @Test
+    void sortByRecentPlacesNewestFirstAndLegacyLastByName() {
+        List<Anchor> sorted = AnchorListView.sortByRecent(List.of(
+                anchor("legacy-z"),
+                anchor("older", 100L),
+                anchor("newer", 200L),
+                anchor("legacy-a")));
+
+        assertEquals(List.of("newer", "older", "legacy-a", "legacy-z"),
+                sorted.stream().map(a -> a.name).toList());
+    }
+
+    @Test
+    void groupByFirstOccurrenceKeepsGroupsContiguousInSortedGroupOrder() {
+        List<Anchor> grouped = AnchorListView.groupByFirstOccurrence(List.of(
+                anchor("diamond", "shops"),
+                anchor("north", "bases"),
+                anchor("emerald", "shops"),
+                anchor("lobby")));
+
+        assertEquals(List.of("diamond", "emerald", "north", "lobby"),
+                grouped.stream().map(a -> a.name).toList());
     }
 }

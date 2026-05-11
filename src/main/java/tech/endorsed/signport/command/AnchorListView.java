@@ -3,6 +3,7 @@ package tech.endorsed.signport.command;
 import tech.endorsed.signport.world.Anchor;
 
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 
@@ -30,6 +31,47 @@ public final class AnchorListView {
                         .comparing(AnchorListView::groupSortKey, String.CASE_INSENSITIVE_ORDER)
                         .thenComparing(a -> a.name, String.CASE_INSENSITIVE_ORDER))
                 .toList();
+    }
+
+    /** Sorts anchors by distance from {@code origin}, nearest first. */
+    public static List<Anchor> sortByDistance(List<Anchor> anchors, net.minecraft.core.BlockPos origin) {
+        return anchors.stream()
+                .sorted(Comparator
+                        .comparingDouble((Anchor a) -> a.pos.distSqr(origin))
+                        .thenComparing(a -> a.name, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
+
+    /** Sorts anchors newest first, with legacy anchors (createdAt == 0) last by name. */
+    public static List<Anchor> sortByRecent(List<Anchor> anchors) {
+        return anchors.stream()
+                .sorted(AnchorListView::compareRecent)
+                .toList();
+    }
+
+    /** Groups an already-sorted anchor list by first group occurrence, preserving row order within each group. */
+    public static List<Anchor> groupByFirstOccurrence(List<Anchor> anchors) {
+        LinkedHashMap<String, List<Anchor>> groups = new LinkedHashMap<>();
+        for (Anchor anchor : anchors) {
+            groups.computeIfAbsent(groupSortKey(anchor), ignored -> new java.util.ArrayList<>()).add(anchor);
+        }
+        return groups.values().stream()
+                .flatMap(List::stream)
+                .toList();
+    }
+
+    private static int compareRecent(Anchor first, Anchor second) {
+        boolean firstLegacy = first.createdAt == 0L;
+        boolean secondLegacy = second.createdAt == 0L;
+        if (firstLegacy && secondLegacy) {
+            return String.CASE_INSENSITIVE_ORDER.compare(first.name, second.name);
+        }
+        if (firstLegacy) return 1;
+        if (secondLegacy) return -1;
+
+        int createdCompare = Long.compare(second.createdAt, first.createdAt);
+        if (createdCompare != 0) return createdCompare;
+        return String.CASE_INSENSITIVE_ORDER.compare(first.name, second.name);
     }
 
     private static String groupSortKey(Anchor anchor) {

@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tech.endorsed.signport.bluemap.BlueMapIntegration;
 import tech.endorsed.signport.command.AnchorCommand;
 import tech.endorsed.signport.config.SignPortConfig;
 import tech.endorsed.signport.events.SignEvents;
@@ -22,6 +23,7 @@ public class SignPort implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		SignPortConfig.load();
+		BlueMapIntegration.initialize();
 
 		CommandRegistrationCallback.EVENT.register(
 				(dispatcher, registryAccess, world) -> {
@@ -48,6 +50,9 @@ public class SignPort implements ModInitializer {
 						.collect(Collectors.joining(", "));
 				LOGGER.info("[SignPort] Loaded {} anchor(s): {}.", total, summary);
 			}
+			BlueMapIntegration.serverStarted(server);
 		});
+
+		ServerLifecycleEvents.SERVER_STOPPING.register(BlueMapIntegration::serverStopping);
 	}
 }

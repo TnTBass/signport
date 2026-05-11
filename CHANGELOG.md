@@ -14,6 +14,10 @@ This project uses SemVer-style mod versions. Release entries should include the 
 - Added an optional case-insensitive substring filter to `/sp anchor list [filter] [page]`; the page footer preserves the active filter.
 - Added `anchorListPageSize` config option (default 10) controlling how many anchors are shown per `/sp anchor list` page.
 - Added optional anchor groups via `/sp anchor create <name> <group>` and `/sp anchor setgroup <name> <group>`, with grouped `/sp anchor list` headers and group-name tab-completion.
+- Added `/sp anchor near [radius]` for distance-sorted anchors in the player's current dimension, using new `defaultNearRadius` config (default 128).
+- Added `/sp anchor list --sort=name|distance|recent`; distance sorting shows meters from the player and recent sorting uses new anchor creation timestamps while keeping legacy anchors last.
+- Added optional BlueMap integration that publishes anchors as map markers when BlueMap is installed, controlled by new `bluemapEnabled` config.
+- Documented the updated phase workflow and added a source hygiene gate for stale `ResourceKey.location()` usage under MC 26.1.2 Mojang mappings.
 
 ## 1.2.1+mc26.1.2 - 2026-05-10
 

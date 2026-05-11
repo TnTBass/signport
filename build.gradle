@@ -17,6 +17,10 @@ repositories {
 	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
 	// for more information about repositories.
 	mavenCentral()
+	maven {
+		name = "BlueColored"
+		url = "https://repo.bluecolored.de/releases"
+	}
 }
 
 loom {
@@ -39,6 +43,7 @@ dependencies {
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 	include(implementation("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}"))
+	compileOnly "de.bluecolored:bluemap-api:2.7.6"
 
 	testImplementation "org.junit.jupiter:junit-jupiter:6.0.3"
 	testRuntimeOnly "org.junit.platform:junit-platform-launcher"
@@ -273,6 +278,15 @@ tasks.register("checkSourceHygiene") {
 			if (!curseforgeListing.contains(section)) {
 				throw new GradleException("docs/curseforge-listing.md must contain a '${section}' section (paste this file into CurseForge after each release).")
 			}
+		}
+
+		def staleResourceKeyAccessor = fileTree("src").matching {
+			include "**/*.java"
+		}.files.find { javaFile ->
+			javaFile.text.contains(".location()")
+		}
+		if (staleResourceKeyAccessor != null) {
+			throw new GradleException("Minecraft 26.1.2 ResourceKey uses identifier(), not location(): ${projectDir.toPath().relativize(staleResourceKeyAccessor.toPath())}")
 		}
 
 		[buildWorkflow, releaseWorkflow].each { workflowText ->

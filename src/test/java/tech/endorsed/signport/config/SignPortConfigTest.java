@@ -39,7 +39,9 @@ class SignPortConfigTest {
                   "protectedActionOpLevel": 3,
                   "crossDimensionPortalSigns": false,
                   "safeTeleportSearch": false,
-                  "anchorListPageSize": 25
+                  "anchorListPageSize": 25,
+                  "defaultNearRadius": 64,
+                  "bluemapEnabled": false
                 }
                 """);
 
@@ -51,6 +53,8 @@ class SignPortConfigTest {
         assertFalse(config.crossDimensionPortalSigns());
         assertFalse(config.safeTeleportSearch());
         assertEquals(25, config.anchorListPageSize());
+        assertEquals(64, config.defaultNearRadius());
+        assertFalse(config.bluemapEnabled());
     }
 
     @Test
@@ -63,7 +67,9 @@ class SignPortConfigTest {
                   "protectedActionOpLevel": 12,
                   "crossDimensionPortalSigns": false,
                   "safeTeleportSearch": false,
-                  "anchorListPageSize": 0
+                  "anchorListPageSize": 0,
+                  "defaultNearRadius": -1,
+                  "bluemapEnabled": "yes"
                 }
                 """);
 
@@ -75,11 +81,23 @@ class SignPortConfigTest {
         assertFalse(config.crossDimensionPortalSigns());
         assertFalse(config.safeTeleportSearch());
         assertEquals(10, config.anchorListPageSize());
+        assertEquals(128, config.defaultNearRadius());
+        assertTrue(config.bluemapEnabled());
     }
 
     @Test
     void defaultAnchorListPageSizeIsTen() {
         assertEquals(10, SignPortConfig.Values.defaults().anchorListPageSize());
+    }
+
+    @Test
+    void defaultNearRadiusIsOneHundredTwentyEight() {
+        assertEquals(128, SignPortConfig.Values.defaults().defaultNearRadius());
+    }
+
+    @Test
+    void bluemapIntegrationDefaultsEnabled() {
+        assertTrue(SignPortConfig.Values.defaults().bluemapEnabled());
     }
 
     @Test
