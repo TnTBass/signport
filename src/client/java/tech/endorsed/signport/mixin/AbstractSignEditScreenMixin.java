@@ -80,17 +80,19 @@ public abstract class AbstractSignEditScreenMixin {
     @Invoker("setMessage")
     protected abstract void signportSetMessage(String message);
 
-    @Shadow
-    protected abstract <T extends GuiEventListener & Renderable & NarratableEntry> T addRenderableWidget(T widget);
+    private <T extends GuiEventListener & Renderable & NarratableEntry> T signportAddRenderableWidget(T widget) {
+        return ((ScreenAccessor) (Object) this).signport$addRenderableWidget(widget);
+    }
 
-    @Shadow
-    protected abstract void setInitialFocus(GuiEventListener listener);
+    private void signportSetInitialFocus(GuiEventListener listener) {
+        ((ScreenAccessor) (Object) this).signport$setInitialFocus(listener);
+    }
 
     @Inject(method = "init", at = @At("TAIL"))
     private void signportAddSuggestionClickTarget(CallbackInfo ci) {
-        addRenderableWidget(new SuggestionClickTarget());
+        signportAddRenderableWidget(new SuggestionClickTarget());
         int doneY = ((AbstractSignEditScreen) (Object) this).height / 4 + 144;
-        signportTemplateButton = addRenderableWidget(Button.builder(Component.literal("SignPort Template"),
+        signportTemplateButton = signportAddRenderableWidget(Button.builder(Component.literal("SignPort Template"),
                         button -> openTemplateDialog())
                 .bounds(((AbstractSignEditScreen) (Object) this).width / 2 - 100, doneY - 24, 200, 20)
                 .build());
@@ -253,7 +255,7 @@ public abstract class AbstractSignEditScreenMixin {
         signportTemplateLeft = (screen.width - TEMPLATE_WIDTH) / 2;
         signportTemplateTop = Math.max(28, (screen.height - TEMPLATE_HEIGHT) / 2);
         int fieldX = signportTemplateLeft + 92;
-        signportTemplateTargetField = addRenderableWidget(new EditBox(screen.getFont(), fieldX, signportTemplateTop + 34,
+        signportTemplateTargetField = signportAddRenderableWidget(new EditBox(screen.getFont(), fieldX, signportTemplateTop + 34,
                 TEMPLATE_FIELD_WIDTH, TEMPLATE_FIELD_HEIGHT, Component.literal("Target anchor")));
         signportTemplateTargetField.setMaxLength(64);
         signportTemplateTargetField.setHint(Component.literal("Anchor"));
@@ -261,19 +263,19 @@ public abstract class AbstractSignEditScreenMixin {
             rebuildTemplateDimensions();
             refreshTemplateSuggestions();
         });
-        signportTemplateDimensionButton = addRenderableWidget(Button.builder(Component.literal("Dimension"),
+        signportTemplateDimensionButton = signportAddRenderableWidget(Button.builder(Component.literal("Dimension"),
                         button -> signportTemplateDimensionOpen = !signportTemplateDimensionOpen)
                 .bounds(fieldX, signportTemplateTop + 62, TEMPLATE_FIELD_WIDTH, TEMPLATE_FIELD_HEIGHT)
                 .build());
-        signportTemplateLabelField = addRenderableWidget(new EditBox(screen.getFont(), fieldX, signportTemplateTop + 90,
+        signportTemplateLabelField = signportAddRenderableWidget(new EditBox(screen.getFont(), fieldX, signportTemplateTop + 90,
                 TEMPLATE_FIELD_WIDTH, TEMPLATE_FIELD_HEIGHT, Component.literal("Decoration line")));
         signportTemplateLabelField.setMaxLength(64);
         signportTemplateLabelField.setHint(Component.literal("Optional"));
-        signportTemplateApplyButton = addRenderableWidget(Button.builder(Component.literal("Apply"),
+        signportTemplateApplyButton = signportAddRenderableWidget(Button.builder(Component.literal("Apply"),
                         button -> applyTemplateDialog())
                 .bounds(signportTemplateLeft + TEMPLATE_WIDTH - 132, signportTemplateTop + TEMPLATE_HEIGHT - 28, 58, 20)
                 .build());
-        signportTemplateCancelButton = addRenderableWidget(Button.builder(Component.literal("Cancel"),
+        signportTemplateCancelButton = signportAddRenderableWidget(Button.builder(Component.literal("Cancel"),
                         button -> closeTemplateDialog())
                 .bounds(signportTemplateLeft + TEMPLATE_WIDTH - 68, signportTemplateTop + TEMPLATE_HEIGHT - 28, 58, 20)
                 .build());
@@ -294,7 +296,7 @@ public abstract class AbstractSignEditScreenMixin {
         }
         refreshTemplateSuggestions();
         updateTemplateWidgetVisibility();
-        setInitialFocus(signportTemplateTargetField);
+        signportSetInitialFocus(signportTemplateTargetField);
         signportTemplateTargetField.setFocused(true);
     }
 

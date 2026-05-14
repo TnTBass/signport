@@ -26,11 +26,4 @@ class ClientLoadSafetyTest {
         assertFalse(metadata.contains("tech.endorsed.signport.client"));
     }
 
-    @Test
-    void mixinMetadataDoesNotLoadClientMixins() throws IOException {
-        String metadata = Files.readString(Path.of("src/main/resources/signport.mixins.json"));
-
-        assertFalse(metadata.contains("\"client\""));
-        assertFalse(metadata.contains("AbstractSignEditScreenMixin"));
-    }
 }

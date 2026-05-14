@@ -6,6 +6,10 @@
 		"SignBlockEntityMixin",
 		"ServerPlayerInteractionManagerMixin"
 	],
+	"client": [
+		"AbstractSignEditScreenMixin",
+		"ScreenAccessor"
+	],
 	"injectors": {
 		"defaultRequire": 1
 	}

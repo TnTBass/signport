@@ -8,6 +8,7 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 - Clarified the public BlueMap integration description.
 - Documented server and client config settings in the README and listing descriptions.
+- Re-enabled the sign-editor autocomplete/template mixin and rerouted its inherited `Screen` calls through an explicit `@Invoker` accessor so the mixin no longer fails to apply during multiplayer login on MC 26.1.2.
 
 ## 2.0.2+mc26.1.2 - 2026-05-14
 
