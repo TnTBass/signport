@@ -6,6 +6,8 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
+## 2.0.0+mc26.1.2 - 2026-05-14
+
 - Added client-side SignPort helpers when both client and server have SignPort installed: synced anchor/permission data, HUD lookup hints for portal signs, the anchor browser, sign-editor autocomplete, and a permission-gated SignPort Template form.
 - Added the SignPort anchor browser on the default `J` keybind, with dimension tabs, search, name/distance/recent sorting, collapsible group sections, and synced-cache teleport actions.
 - Added portal sign editor autocomplete and the SignPort Template form to make valid portal signs easier to create from the synced anchor cache.
