@@ -11,7 +11,7 @@ Use this as the working copy for the SignPort Modrinth project page.
 | Slug | `signport` |
 | Summary | Create named anchors and use signs as portals for fast Minecraft travel. |
 | License | LGPL-3.0-only |
-| Client side | Unsupported |
+| Client side | Optional |
 | Server side | Required |
 | Minecraft versions | `26.1.2` |
 | Loaders | Fabric |
@@ -57,12 +57,26 @@ Original project by [approved (GitHub)](https://github.com/approved) - [approved
 
 ## Features
 
-- Create, list, delete, and teleport to named anchors.
+- Create, group, list, filter, sort, delete, and teleport to named anchors.
 - Turn signs into portals with `[sp]` or `[signport]`.
 - Target anchors in the current dimension or another dimension.
+- Browse nearby anchors with `/sp anchor near [radius]`.
+- Use tab completion for anchor names and groups.
 - Supports front/back sign text by checking the side the player is facing first.
 - Colors the portal marker green for valid targets and red for missing targets.
+- Optional client features add HUD lookup hints, an anchor browser, sign-editor autocomplete, and a SignPort Template form for filling valid portal signs.
+- Optional BlueMap integration publishes anchor markers to your web map.
 - Supports LuckPerms through `fabric-permissions-api`, with vanilla operator fallbacks.
+
+## Optional Integrations
+
+SignPort's core portal and command features are server-side. Vanilla clients can join and use portal signs normally.
+
+- **SignPort client mod:** optional on players' clients. When both client and server have SignPort installed, the client receives synced anchor and permission data. This enables portal-sign HUD lookup hints, the `J` anchor browser, sign-editor autocomplete, and the permission-gated SignPort Template button.
+- **BlueMap:** optional server-side integration. When BlueMap is installed and `bluemapEnabled` is `true`, SignPort publishes anchors as marker sets by dimension.
+- **LuckPerms or another `fabric-permissions-api` provider:** optional server-side permission provider. Without one, SignPort uses vanilla operator fallback levels.
+- **Cloth Config:** optional client-side config screen. If installed, SignPort's client settings can be edited in-game.
+- **ModMenu:** optional client-side settings entry. If ModMenu and Cloth Config are both installed, SignPort appears in ModMenu's config list.
 
 ## Sign Format
 
@@ -94,8 +108,11 @@ Accepted dimension values for line 4: `overworld`, `nether`, `end`, `the_nether`
 
 ```text
 /signport anchor create <name>
+/signport anchor create <name> <group>
 /signport anchor create <name> <x> <y> <z>
-/signport anchor list
+/signport anchor setgroup <name> <group>
+/signport anchor list [filter] [page] [--sort=name|distance|recent]
+/signport anchor near [radius] [page]
 /signport anchor delete <name>
 /signport anchor delete all
 /signport tp <name>
@@ -124,7 +141,7 @@ SignPort works with LuckPerms through `fabric-permissions-api`. If no permission
 - Fabric API
 - Java 25
 
-Install SignPort on the server. Players do not need to install it on their clients.
+Install SignPort on the server. Players do not need to install it on their clients, but installing the same jar client-side enables the optional client helpers listed above.
 
 ## Modpacks and Redistribution
 
@@ -164,6 +181,6 @@ Version changelog:
 - Add `docs/modrinth-portal-wall.png` or `docs/modrinth-nether-destination-signs.png` as supporting gallery images.
 - Upload only the `1.1.0+mc26.1.2` mod jar. Do not upload the sources jar to Modrinth.
 - Confirm Fabric API is marked as a required dependency.
-- Confirm Client side is `Unsupported` and Server side is `Required` in the Modrinth UI.
+- Confirm Client side is `Optional` and Server side is `Required` in the Modrinth UI.
 - Confirm the source and issue links point to `https://github.com/TnTBass/signport`.
 - Confirm the page description still credits the original project by `approved`.
