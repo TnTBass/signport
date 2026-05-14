@@ -2,6 +2,7 @@ package tech.endorsed.signport.client;
 
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
+import tech.endorsed.signport.SignPort;
 import tech.endorsed.signport.network.AnchorSyncPayloads;
 
 import java.util.HashMap;
@@ -25,6 +26,8 @@ public final class SignPortClientState {
         }
         permissions = payload.permissions();
         serverHasSignPort = true;
+        SignPort.LOGGER.info("[SignPort] Received full anchor sync: {} anchor(s) across {} dimension(s).",
+                payload.anchors().size(), CACHE.size());
     }
 
     public static void applyDelta(AnchorSyncPayloads.Delta payload) {
@@ -35,10 +38,16 @@ public final class SignPortClientState {
             if (anchors != null) {
                 anchors.remove(key(payload.name()));
             }
+            SignPort.LOGGER.info("[SignPort] Received delta: delete '{}' in {}.",
+                    payload.name(), payload.dimension().identifier());
             return;
         }
 
         upsert(AnchorClient.from(payload.anchor()));
+        SignPort.LOGGER.info("[SignPort] Received delta: {} '{}' in {}.",
+                payload.action().name().toLowerCase(Locale.ROOT),
+                payload.anchor().name(),
+                payload.anchor().dimension().identifier());
     }
 
     public static void clear() {
