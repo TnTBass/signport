@@ -41,6 +41,12 @@ When BlueMap is installed on the server, SignPort publishes anchors as POI marke
 
 BlueMap is optional. SignPort runs normally without it, and server packs that want to require BlueMap can enforce that in their own modpack metadata. Set `bluemapEnabled` to `false` in `config/signport.json` to disable marker registration while keeping BlueMap installed.
 
+## Optional Client Features
+
+The same SignPort jar also includes an optional Fabric client mod. Vanilla clients still work normally: servers only send SignPort client payloads to clients that advertise the channel. When both sides have SignPort, the client receives anchor and permission sync data and shows a small hotbar lookup hint while you look at a portal sign.
+
+Client settings live in `config/signport-client.json`; `hudHintEnabled` controls the lookup hint and defaults to `true`. If Cloth Config is installed, the settings screen can be opened through the default-unbound `key.signport.config` keybind. ModMenu users also get a SignPort settings entry when ModMenu and Cloth Config are both present.
+
 ## Portal Signs
 
 A sign becomes a SignPort portal when one side uses this format:

@@ -21,6 +21,14 @@ repositories {
 		name = "BlueColored"
 		url = "https://repo.bluecolored.de/releases"
 	}
+	maven {
+		name = "Shedaniel"
+		url = "https://maven.shedaniel.me/"
+	}
+	maven {
+		name = "Modrinth"
+		url = "https://api.modrinth.com/maven"
+	}
 }
 
 loom {
@@ -42,8 +50,13 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+	clientImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 	include(implementation("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}"))
 	compileOnly "de.bluecolored:bluemap-api:2.7.6"
+	compileOnly "me.shedaniel.cloth:cloth-config-fabric:26.1.154"
+	compileOnly "maven.modrinth:modmenu:18.0.0-alpha.8"
+	clientCompileOnly "me.shedaniel.cloth:cloth-config-fabric:26.1.154"
+	clientCompileOnly "maven.modrinth:modmenu:18.0.0-alpha.8"
 
 	testImplementation "org.junit.jupiter:junit-jupiter:6.0.3"
 	testRuntimeOnly "org.junit.platform:junit-platform-launcher"

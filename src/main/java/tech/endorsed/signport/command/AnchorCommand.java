@@ -24,6 +24,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.ChatFormatting;
 import tech.endorsed.signport.bluemap.BlueMapIntegration;
 import tech.endorsed.signport.config.SignPortConfig;
+import tech.endorsed.signport.network.AnchorSyncServer;
 import tech.endorsed.signport.permission.SignPortPermissions;
 import tech.endorsed.signport.world.Anchor;
 import tech.endorsed.signport.world.AnchorState;
@@ -234,6 +235,7 @@ public class AnchorCommand {
         Anchor anchor = new Anchor(name, aPos, dim, normalizedGroup);
         anchorState.addAnchor(anchor);
         BlueMapIntegration.anchorCreated(source.getServer(), anchor);
+        AnchorSyncServer.anchorCreated(source.getServer(), anchor);
 
         if (normalizedGroup.isEmpty()) {
             player.sendSystemMessage(Component.literal("Created anchor '%s'".formatted(name)));
@@ -255,8 +257,10 @@ public class AnchorCommand {
         if (!anchorState.setAnchorGroup(name, dim, normalizedGroup)) {
             throw UNKNOWN_NAME_EXCEPTION.create();
         }
-        anchorState.findAnchor(name, dim).ifPresent(anchor ->
-                BlueMapIntegration.anchorUpdated(source.getServer(), anchor));
+        anchorState.findAnchor(name, dim).ifPresent(anchor -> {
+            BlueMapIntegration.anchorUpdated(source.getServer(), anchor);
+            AnchorSyncServer.anchorUpdated(source.getServer(), anchor);
+        });
 
         if (normalizedGroup.isEmpty()) {
             player.sendSystemMessage(Component.literal("Moved anchor '%s' to (ungrouped)".formatted(name)));
@@ -275,8 +279,10 @@ public class AnchorCommand {
 
         Optional<Anchor> deleted = anchorState.findAnchor(name, dim);
         if (anchorState.deleteAnchor(name, dim)) {
-            deleted.ifPresent(anchor ->
-                    BlueMapIntegration.anchorDeleted(source.getServer(), dim, anchor.name));
+            deleted.ifPresent(anchor -> {
+                BlueMapIntegration.anchorDeleted(source.getServer(), dim, anchor.name);
+                AnchorSyncServer.anchorDeleted(source.getServer(), anchor.name, dim);
+            });
             player.sendSystemMessage(Component.literal("Deleted anchor '%s'".formatted(name)));
             return 1;
         }
@@ -284,6 +290,7 @@ public class AnchorCommand {
         if (name.equalsIgnoreCase("all")) {
             anchorState.clearAnchors(dim);
             BlueMapIntegration.anchorsCleared(source.getServer(), dim);
+            AnchorSyncServer.sendFullToAll(source.getServer());
             player.sendSystemMessage(Component.literal("Deleted ALL anchors"));
             return 1;
         }

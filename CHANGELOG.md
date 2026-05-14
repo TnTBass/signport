@@ -6,6 +6,7 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
+- Added the optional bundled client foundation: anchor/permission sync, the portal-sign HUD lookup hint, and `config/signport-client.json` with a Cloth Config/ModMenu soft-dependency screen. Permission sync refreshes on join, respawn, and dimension change.
 - Fixed source hygiene check failing on Windows due to CRLF line endings in workflow files.
 - Logged a one-line anchor summary at server start (`Loaded N anchor(s): X in overworld, Y in the_nether`); legacy file migration now also runs eagerly at startup instead of on the first write.
 - Auto-sync Modrinth project description from `docs/modrinth-listing.md` on every release; added hygiene gates to ensure both listing docs stay structurally complete.

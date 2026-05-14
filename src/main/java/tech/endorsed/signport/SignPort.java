@@ -10,6 +10,7 @@ import tech.endorsed.signport.bluemap.BlueMapIntegration;
 import tech.endorsed.signport.command.AnchorCommand;
 import tech.endorsed.signport.config.SignPortConfig;
 import tech.endorsed.signport.events.SignEvents;
+import tech.endorsed.signport.network.AnchorSyncServer;
 import tech.endorsed.signport.world.AnchorState;
 
 import java.util.LinkedHashMap;
@@ -24,6 +25,7 @@ public class SignPort implements ModInitializer {
 	public void onInitialize() {
 		SignPortConfig.load();
 		BlueMapIntegration.initialize();
+		AnchorSyncServer.register();
 
 		CommandRegistrationCallback.EVENT.register(
 				(dispatcher, registryAccess, world) -> {
