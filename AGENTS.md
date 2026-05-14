@@ -148,7 +148,7 @@ Release steps:
 6. Push `main` and the tag.
 7. Verify the release workflow run on GitHub Actions.
 
-The release workflow validates the tag pattern, builds with Java 25, creates a GitHub Release with the remapped mod jar and sources jar, and publishes the same build to Modrinth (`modern-signport` project) and CurseForge.
+The release workflow validates the tag pattern, builds with Java 25, creates a GitHub Release with the remapped mod jar and sources jar, and publishes the same build to Modrinth (`signport` project) and CurseForge.
 
 Required secrets:
 
@@ -243,8 +243,8 @@ Resulting framework picks for the client mod phases:
 | Concern | Choice | Rationale |
 | --- | --- | --- |
 | Networking | Fabric API `ClientPlayNetworking` + `PayloadTypeRegistry` | Already on classpath via Fabric API. |
-| Keybinds | Fabric API `KeyBindingHelper` (`fabric-key-mapping-api-v1`) | Standard, surfaces in vanilla Controls menu. |
-| HUD overlay | Fabric API `HudRenderCallback` (`fabric-rendering-v1`) | Standard. |
+| Keybinds | Fabric API `KeyBindingHelper` (`fabric-key-binding-api-v1`) via runtime reflection if the split client source set cannot compile against the remapped helper directly | Standard, surfaces in vanilla Controls menu. This repo's Loom setup does not expose `modCompileOnly` / `modImplementation`; a raw client dependency can leak intermediary names such as `class_304`. |
+| HUD overlay | Client tick + `LocalPlayer.sendOverlayMessage(...)` | Matches the vanilla action-bar location and avoids depending on the newer HUD extraction API shape. |
 | Screens | Vanilla `Screen` widgets | Sufficient. No `owo-lib` or `malilib` dependency. |
 | Mixin | Loader's bundled Mixin + MixinExtras | Already on classpath. |
 | Client config values | Plain POJO + JSON, always loaded | Must work without any third-party config library installed. |
@@ -257,7 +257,11 @@ Resulting framework picks for the client mod phases:
 
 - BlueMap 5.x uses the `de.bluecolored:bluemap-api:2.7.x` Maven artifact; do not look for a `bluemap-api:5.x` artifact.
 - BlueMap POI markers support popup detail HTML in the public API. As of API 2.7.6, they do not expose a server-command click handler, so SignPort markers should show `/sp tp <name>` in marker detail unless a newer API adds command support.
+- This Loom 1.16.1 setup does not expose `modCompileOnly` or `modImplementation`. Use `compileOnly` / `clientCompileOnly` for optional APIs such as Cloth Config and ModMenu, and add explicit `clientImplementation` only when the split `client` source set needs the aggregate Fabric API on its compile classpath.
 - Keep optional third-party integrations split between a loader-safe entry class and a bridge class that alone imports optional API types. The entry class should guard with `FabricLoader.isModLoaded(...)` and config before loading the bridge.
+- Register custom payload types through a shared idempotent helper. In integrated/client runs, common and client initializers can execute in the same JVM, so duplicate `PayloadTypeRegistry.clientboundPlay().register(...)` calls are risky.
+- For HUD lookup hints, cache the resolved target and sign-text key, not the fully rendered message. Recompute only when the looked-at sign or text changes, but format dynamic values such as distance every tick so the display stays accurate.
+- For optional config keybinds, add a lang entry under `src/main/resources/assets/signport/lang/en_us.json`; otherwise Controls shows the raw translation key.
 - For future phase work, start with `rg --files` and `rg -n`, then use targeted range reads. Avoid full-file reads of large command or state classes unless the change touches broad behavior.
 - When the worktree is already dirty, record the baseline with `git status --short` and keep review diffs scoped to files touched in the current phase.
 

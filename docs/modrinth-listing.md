@@ -8,7 +8,7 @@ Use this as the working copy for the SignPort Modrinth project page.
 | --- | --- |
 | Project type | Mod |
 | Name | SignPort |
-| Slug | `modern-signport` |
+| Slug | `signport` |
 | Summary | Create named anchors and use signs as portals for fast Minecraft travel. |
 | License | LGPL-3.0-only |
 | Client side | Unsupported |

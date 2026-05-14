@@ -49,7 +49,11 @@ The same SignPort jar also includes an optional Fabric client mod. Vanilla clien
 - Press `J` to open the SignPort anchor browser. It has dimension tabs, search, name/distance/recent sorting, collapsible group sections, and click-to-run `/sp tp <name>` rows. Players with anchor delete permission also see a raw `/tp @s <x> <y> <z>` shortcut.
 - While editing a portal sign, line 3 autocompletes anchor names from the synced cache. If line 4 contains a dimension id, suggestions are scoped to that dimension; otherwise suggestions include their dimension in parentheses.
 
-Client settings live in `config/signport-client.json`. `hudHintEnabled`, `browserKeybindEnabled`, and `signEditorAutocompleteEnabled` all default to `true`; disabling the browser keybind takes effect after restarting the game. If Cloth Config is installed, the settings screen can be opened through the default-unbound `key.signport.config` keybind. ModMenu users also get a SignPort settings entry when ModMenu and Cloth Config are both present.
+### Sign template form
+
+Players with `signport.sign.create` permission see a **SignPort Template** button while editing a sign on a SignPort-equipped server. The form accepts a target anchor, an optional dimension from the synced anchor cache, and an optional label for line 1, then fills the sign as `[sp]` plus the selected anchor details. Players can still edit the sign lines manually before pressing Done. The button is hidden when permission sync is unavailable, when the server reports the player cannot create portal signs, or when `signTemplateButtonEnabled` is disabled.
+
+Client settings live in `config/signport-client.json`. `hudHintEnabled`, `browserKeybindEnabled`, `signEditorAutocompleteEnabled`, and `signTemplateButtonEnabled` all default to `true`; disabling the browser keybind takes effect after restarting the game. If Cloth Config is installed, the settings screen can be opened through the default-unbound `key.signport.config` keybind. ModMenu users also get a SignPort settings entry when ModMenu and Cloth Config are both present.
 
 ## Portal Signs
 
@@ -130,6 +134,6 @@ The workflow requires these repository secrets:
 
 | Secret | Purpose |
 | --- | --- |
-| `MODRINTH_TOKEN` | Creates versions for the `modern-signport` Modrinth project. |
+| `MODRINTH_TOKEN` | Creates versions for the `signport` Modrinth project. |
 | `CURSEFORGE_TOKEN` | Uploads files through the CurseForge Upload API. |
 | `CURSEFORGE_PROJECT_ID` | Numeric CurseForge project ID for the SignPort project. |

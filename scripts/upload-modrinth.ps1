@@ -1,5 +1,5 @@
 param(
-    [string] $Slug = "modern-signport",
+    [string] $Slug = "signport",
     [string] $Version = "",
     [string] $JarPath = "",
     [string] $SourcesJarPath = "",

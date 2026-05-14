@@ -52,7 +52,8 @@ public final class SignPortClientConfig {
             return new Values(
                     readBoolean(object, "hudHintEnabled", defaults.hudHintEnabled),
                     readBoolean(object, "browserKeybindEnabled", defaults.browserKeybindEnabled),
-                    readBoolean(object, "signEditorAutocompleteEnabled", defaults.signEditorAutocompleteEnabled));
+                    readBoolean(object, "signEditorAutocompleteEnabled", defaults.signEditorAutocompleteEnabled),
+                    readBoolean(object, "signTemplateButtonEnabled", defaults.signTemplateButtonEnabled));
         } catch (Exception exception) {
             SignPort.LOGGER.warn("Could not read SignPort client config at {}; using defaults.", configPath, exception);
             return defaults;
@@ -76,6 +77,10 @@ public final class SignPortClientConfig {
 
     public static void setSignEditorAutocompleteEnabled(boolean enabled) {
         values.signEditorAutocompleteEnabled = enabled;
+    }
+
+    public static void setSignTemplateButtonEnabled(boolean enabled) {
+        values.signTemplateButtonEnabled = enabled;
     }
 
     private static void save(Path configPath, Values values) {
@@ -106,15 +111,18 @@ public final class SignPortClientConfig {
         public boolean hudHintEnabled;
         public boolean browserKeybindEnabled;
         public boolean signEditorAutocompleteEnabled;
+        public boolean signTemplateButtonEnabled;
 
-        public Values(boolean hudHintEnabled, boolean browserKeybindEnabled, boolean signEditorAutocompleteEnabled) {
+        public Values(boolean hudHintEnabled, boolean browserKeybindEnabled, boolean signEditorAutocompleteEnabled,
+                      boolean signTemplateButtonEnabled) {
             this.hudHintEnabled = hudHintEnabled;
             this.browserKeybindEnabled = browserKeybindEnabled;
             this.signEditorAutocompleteEnabled = signEditorAutocompleteEnabled;
+            this.signTemplateButtonEnabled = signTemplateButtonEnabled;
         }
 
         public static Values defaults() {
-            return new Values(true, true, true);
+            return new Values(true, true, true, true);
         }
     }
 }

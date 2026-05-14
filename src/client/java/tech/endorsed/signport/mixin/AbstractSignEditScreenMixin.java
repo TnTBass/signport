@@ -2,6 +2,8 @@ package tech.endorsed.signport.mixin;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.narration.NarratableEntry;
@@ -10,6 +12,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
@@ -27,15 +30,24 @@ import tech.endorsed.signport.client.SignPortClientState;
 import tech.endorsed.signport.client.config.SignPortClientConfig;
 import tech.endorsed.signport.world.PortSignFormat;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @Mixin(AbstractSignEditScreen.class)
 public abstract class AbstractSignEditScreenMixin {
     private static final int MAX_SUGGESTIONS = 8;
+    private static final int MAX_TEMPLATE_SUGGESTIONS = 6;
     private static final int SUGGESTION_WIDTH = 220;
     private static final int SUGGESTION_ROW_HEIGHT = 14;
+    private static final int TEMPLATE_WIDTH = 300;
+    private static final int TEMPLATE_HEIGHT = 154;
+    private static final int TEMPLATE_FIELD_WIDTH = 196;
+    private static final int TEMPLATE_FIELD_HEIGHT = 18;
+    private static final int TEMPLATE_ROW_HEIGHT = 14;
 
     @Shadow @Final protected SignBlockEntity sign;
     @Shadow @Final private String[] messages;
@@ -46,6 +58,24 @@ public abstract class AbstractSignEditScreenMixin {
     private boolean signportDismissed = false;
     private int signportPopupX;
     private int signportPopupY;
+    private Button signportTemplateButton;
+    private EditBox signportTemplateTargetField;
+    private EditBox signportTemplateLabelField;
+    private Button signportTemplateDimensionButton;
+    private Button signportTemplateApplyButton;
+    private Button signportTemplateCancelButton;
+    private boolean signportTemplateOpen = false;
+    private boolean signportTemplateDimensionOpen = false;
+    private List<AnchorClient> signportTemplateSuggestions = List.of();
+    private int signportTemplateSelectedSuggestion = 0;
+    private List<DimensionOption> signportTemplateDimensionOptions = List.of(DimensionOption.DEFAULT);
+    private int signportTemplateSelectedDimension = 0;
+    private int signportTemplateLeft;
+    private int signportTemplateTop;
+    private int signportTemplateSuggestionX;
+    private int signportTemplateSuggestionY;
+    private int signportTemplateDimensionX;
+    private int signportTemplateDimensionY;
 
     @Invoker("setMessage")
     protected abstract void signportSetMessage(String message);
@@ -53,13 +83,31 @@ public abstract class AbstractSignEditScreenMixin {
     @Shadow
     protected abstract <T extends GuiEventListener & Renderable & NarratableEntry> T addRenderableWidget(T widget);
 
+    @Shadow
+    protected abstract void setInitialFocus(GuiEventListener listener);
+
     @Inject(method = "init", at = @At("TAIL"))
     private void signportAddSuggestionClickTarget(CallbackInfo ci) {
         addRenderableWidget(new SuggestionClickTarget());
+        int doneY = ((AbstractSignEditScreen) (Object) this).height / 4 + 144;
+        signportTemplateButton = addRenderableWidget(Button.builder(Component.literal("SignPort Template"),
+                        button -> openTemplateDialog())
+                .bounds(((AbstractSignEditScreen) (Object) this).width / 2 - 100, doneY - 24, 200, 20)
+                .build());
+        createTemplateWidgets();
+        updateTemplateButtonVisibility();
+        updateTemplateWidgetVisibility();
     }
 
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void signportHandleSuggestionKeys(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
+        if (signportTemplateOpen) {
+            signportSuggestions = List.of();
+            if (handleTemplateKeys(event)) {
+                cir.setReturnValue(true);
+            }
+            return;
+        }
         refreshSuggestions();
         if (signportSuggestions.isEmpty()) return;
 
@@ -88,6 +136,10 @@ public abstract class AbstractSignEditScreenMixin {
 
     @Inject(method = "keyPressed", at = @At("RETURN"))
     private void signportAfterKey(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
+        if (signportTemplateOpen) {
+            refreshTemplateSuggestions();
+            return;
+        }
         if (event.key() != 256 && event.key() != 258 && event.key() != 257 && event.key() != 264 && event.key() != 265) {
             signportDismissed = false;
         }
@@ -96,12 +148,22 @@ public abstract class AbstractSignEditScreenMixin {
 
     @Inject(method = "charTyped", at = @At("RETURN"))
     private void signportAfterChar(CallbackInfoReturnable<Boolean> cir) {
+        if (signportTemplateOpen) {
+            refreshTemplateSuggestions();
+            return;
+        }
         signportDismissed = false;
         refreshSuggestions();
     }
 
     @Inject(method = "extractRenderState", at = @At("TAIL"))
     private void signportRenderSuggestions(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
+        updateTemplateButtonVisibility();
+        updateTemplateWidgetVisibility();
+        if (signportTemplateOpen) {
+            renderTemplateDialog(graphics, mouseX, mouseY);
+            return;
+        }
         refreshSuggestions();
         if (signportSuggestions.isEmpty()) return;
 
@@ -127,6 +189,9 @@ public abstract class AbstractSignEditScreenMixin {
     }
 
     private boolean handleSuggestionMouseClick(MouseButtonEvent event) {
+        if (signportTemplateOpen) {
+            return handleTemplateMouseClick(event);
+        }
         refreshSuggestions();
         if (signportSuggestions.isEmpty()) return false;
 
@@ -143,7 +208,7 @@ public abstract class AbstractSignEditScreenMixin {
 
     private void refreshSuggestions() {
         if (!SignPortClientConfig.get().signEditorAutocompleteEnabled || SignPortClientState.anchors().isEmpty()
-                || signportDismissed || line != 2 || !PortSignFormat.isPortalMarker(messages[1])) {
+                || signportTemplateOpen || signportDismissed || line != 2 || !PortSignFormat.isPortalMarker(messages[1])) {
             signportSuggestions = List.of();
             signportSelectedSuggestion = 0;
             return;
@@ -183,6 +248,328 @@ public abstract class AbstractSignEditScreenMixin {
         signportSuggestions = List.of();
     }
 
+    private void createTemplateWidgets() {
+        AbstractSignEditScreen screen = (AbstractSignEditScreen) (Object) this;
+        signportTemplateLeft = (screen.width - TEMPLATE_WIDTH) / 2;
+        signportTemplateTop = Math.max(28, (screen.height - TEMPLATE_HEIGHT) / 2);
+        int fieldX = signportTemplateLeft + 92;
+        signportTemplateTargetField = addRenderableWidget(new EditBox(screen.getFont(), fieldX, signportTemplateTop + 34,
+                TEMPLATE_FIELD_WIDTH, TEMPLATE_FIELD_HEIGHT, Component.literal("Target anchor")));
+        signportTemplateTargetField.setMaxLength(64);
+        signportTemplateTargetField.setHint(Component.literal("Anchor"));
+        signportTemplateTargetField.setResponder(ignored -> {
+            rebuildTemplateDimensions();
+            refreshTemplateSuggestions();
+        });
+        signportTemplateDimensionButton = addRenderableWidget(Button.builder(Component.literal("Dimension"),
+                        button -> signportTemplateDimensionOpen = !signportTemplateDimensionOpen)
+                .bounds(fieldX, signportTemplateTop + 62, TEMPLATE_FIELD_WIDTH, TEMPLATE_FIELD_HEIGHT)
+                .build());
+        signportTemplateLabelField = addRenderableWidget(new EditBox(screen.getFont(), fieldX, signportTemplateTop + 90,
+                TEMPLATE_FIELD_WIDTH, TEMPLATE_FIELD_HEIGHT, Component.literal("Decoration line")));
+        signportTemplateLabelField.setMaxLength(64);
+        signportTemplateLabelField.setHint(Component.literal("Optional"));
+        signportTemplateApplyButton = addRenderableWidget(Button.builder(Component.literal("Apply"),
+                        button -> applyTemplateDialog())
+                .bounds(signportTemplateLeft + TEMPLATE_WIDTH - 132, signportTemplateTop + TEMPLATE_HEIGHT - 28, 58, 20)
+                .build());
+        signportTemplateCancelButton = addRenderableWidget(Button.builder(Component.literal("Cancel"),
+                        button -> closeTemplateDialog())
+                .bounds(signportTemplateLeft + TEMPLATE_WIDTH - 68, signportTemplateTop + TEMPLATE_HEIGHT - 28, 58, 20)
+                .build());
+    }
+
+    private void openTemplateDialog() {
+        if (!canShowTemplateButton()) return;
+        signportTemplateOpen = true;
+        signportTemplateDimensionOpen = false;
+        signportDismissed = true;
+        signportSuggestions = List.of();
+        signportTemplateTargetField.setValue(PortSignFormat.normalizeLine(messages[2]));
+        signportTemplateLabelField.setValue(PortSignFormat.normalizeLine(messages[0]));
+        rebuildTemplateDimensions();
+        Identifier dimensionId = PortSignFormat.parseDimensionId(messages[3]);
+        if (dimensionId != null) {
+            selectTemplateDimension(ResourceKey.create(Registries.DIMENSION, dimensionId));
+        }
+        refreshTemplateSuggestions();
+        updateTemplateWidgetVisibility();
+        setInitialFocus(signportTemplateTargetField);
+        signportTemplateTargetField.setFocused(true);
+    }
+
+    private void closeTemplateDialog() {
+        signportTemplateOpen = false;
+        signportTemplateDimensionOpen = false;
+        signportTemplateSuggestions = List.of();
+        updateTemplateWidgetVisibility();
+    }
+
+    private void applyTemplateDialog() {
+        String anchorName = PortSignFormat.normalizeLine(signportTemplateTargetField.getValue());
+        if (anchorName.isBlank()) return;
+
+        int previousLine = line;
+        List<String> templateLines = List.of(
+                signportTemplateLabelField.getValue(),
+                "[sp]",
+                anchorName,
+                selectedTemplateDimension().map(option -> option.dimension().identifier().toString()).orElse(""));
+        for (int i = 0; i < templateLines.size(); i++) {
+            line = i;
+            signportSetMessage(templateLines.get(i));
+        }
+        line = previousLine;
+        closeTemplateDialog();
+    }
+
+    private boolean handleTemplateKeys(KeyEvent event) {
+        if (event.key() == 256) {
+            closeTemplateDialog();
+            return true;
+        }
+        if (!signportTemplateTargetField.isFocused()) return false;
+        refreshTemplateSuggestions();
+        if (signportTemplateSuggestions.isEmpty()) return false;
+
+        switch (event.key()) {
+            case 264 -> {
+                signportTemplateSelectedSuggestion = (signportTemplateSelectedSuggestion + 1) % signportTemplateSuggestions.size();
+                return true;
+            }
+            case 265 -> {
+                signportTemplateSelectedSuggestion = (signportTemplateSelectedSuggestion + signportTemplateSuggestions.size() - 1)
+                        % signportTemplateSuggestions.size();
+                return true;
+            }
+            case 258, 257 -> {
+                acceptTemplateSuggestion(signportTemplateSuggestions.get(signportTemplateSelectedSuggestion));
+                return true;
+            }
+            default -> {
+                return false;
+            }
+        }
+    }
+
+    private boolean handleTemplateMouseClick(MouseButtonEvent event) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        if (mouseX >= signportTemplateSuggestionX && mouseX < signportTemplateSuggestionX + SUGGESTION_WIDTH
+                && mouseY >= signportTemplateSuggestionY
+                && mouseY < signportTemplateSuggestionY + signportTemplateSuggestions.size() * SUGGESTION_ROW_HEIGHT) {
+            int index = (int) ((mouseY - signportTemplateSuggestionY) / SUGGESTION_ROW_HEIGHT);
+            if (index >= 0 && index < signportTemplateSuggestions.size()) {
+                acceptTemplateSuggestion(signportTemplateSuggestions.get(index));
+                return true;
+            }
+        }
+        if (signportTemplateDimensionOpen
+                && mouseX >= signportTemplateDimensionX
+                && mouseX < signportTemplateDimensionX + TEMPLATE_FIELD_WIDTH
+                && mouseY >= signportTemplateDimensionY
+                && mouseY < signportTemplateDimensionY + signportTemplateDimensionOptions.size() * TEMPLATE_ROW_HEIGHT) {
+            int index = (int) ((mouseY - signportTemplateDimensionY) / TEMPLATE_ROW_HEIGHT);
+            if (index >= 0 && index < signportTemplateDimensionOptions.size()) {
+                signportTemplateSelectedDimension = index;
+                signportTemplateDimensionOpen = false;
+                updateDimensionButtonLabel();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void refreshTemplateSuggestions() {
+        if (!signportTemplateOpen || SignPortClientState.anchors().isEmpty()) {
+            signportTemplateSuggestions = List.of();
+            signportTemplateSelectedSuggestion = 0;
+            return;
+        }
+        String needle = signportTemplateTargetField.getValue().toLowerCase(Locale.ROOT);
+        signportTemplateSuggestions = SignPortClientState.anchors().stream()
+                .filter(anchor -> needle.isBlank() || anchor.name().toLowerCase(Locale.ROOT).contains(needle))
+                .sorted(suggestionComparator(needle))
+                .limit(MAX_TEMPLATE_SUGGESTIONS)
+                .toList();
+        if (signportTemplateSelectedSuggestion >= signportTemplateSuggestions.size()) {
+            signportTemplateSelectedSuggestion = 0;
+        }
+        signportTemplateApplyButton.active = !PortSignFormat.normalizeLine(signportTemplateTargetField.getValue()).isBlank();
+    }
+
+    private void rebuildTemplateDimensions() {
+        String target = PortSignFormat.normalizeLine(signportTemplateTargetField.getValue());
+        String needle = target.toLowerCase(Locale.ROOT);
+        ResourceKey<Level> previous = selectedTemplateDimension().map(DimensionOption::dimension).orElse(null);
+        Map<ResourceKey<Level>, DimensionOption> options = new LinkedHashMap<>();
+        List<AnchorClient> exactMatches = new ArrayList<>();
+        SignPortClientState.anchors().stream()
+                .filter(anchor -> needle.isBlank() || anchor.name().toLowerCase(Locale.ROOT).contains(needle))
+                .sorted(Comparator.comparing(anchor -> anchor.dimension().identifier().toString()))
+                .forEach(anchor -> {
+                    options.putIfAbsent(anchor.dimension(), new DimensionOption(anchor.dimension()));
+                    if (!target.isBlank() && anchor.name().equalsIgnoreCase(target)) {
+                        exactMatches.add(anchor);
+                    }
+                });
+
+        List<DimensionOption> rebuilt = new ArrayList<>();
+        rebuilt.add(DimensionOption.DEFAULT);
+        rebuilt.addAll(options.values());
+        signportTemplateDimensionOptions = rebuilt;
+        signportTemplateSelectedDimension = 0;
+
+        if (exactMatches.size() == 1) {
+            selectTemplateDimension(exactMatches.getFirst().dimension());
+        } else if (previous != null) {
+            selectTemplateDimension(previous);
+        }
+        updateDimensionButtonLabel();
+    }
+
+    private void selectTemplateDimension(ResourceKey<Level> dimension) {
+        for (int i = 0; i < signportTemplateDimensionOptions.size(); i++) {
+            DimensionOption option = signportTemplateDimensionOptions.get(i);
+            if (!option.isDefault() && option.dimension().equals(dimension)) {
+                signportTemplateSelectedDimension = i;
+                return;
+            }
+        }
+    }
+
+    private java.util.Optional<DimensionOption> selectedTemplateDimension() {
+        if (signportTemplateSelectedDimension < 0 || signportTemplateSelectedDimension >= signportTemplateDimensionOptions.size()) {
+            return java.util.Optional.empty();
+        }
+        DimensionOption option = signportTemplateDimensionOptions.get(signportTemplateSelectedDimension);
+        return option.isDefault() ? java.util.Optional.empty() : java.util.Optional.of(option);
+    }
+
+    private void acceptTemplateSuggestion(AnchorClient anchor) {
+        signportTemplateTargetField.setValue(anchor.name());
+        rebuildTemplateDimensions();
+        selectTemplateDimension(anchor.dimension());
+        updateDimensionButtonLabel();
+        signportTemplateSuggestions = List.of();
+    }
+
+    private void renderTemplateDialog(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        refreshTemplateSuggestions();
+        graphics.nextStratum();
+        graphics.fill(0, 0, ((AbstractSignEditScreen) (Object) this).width, ((AbstractSignEditScreen) (Object) this).height, 0x88000000);
+        graphics.fill(signportTemplateLeft, signportTemplateTop, signportTemplateLeft + TEMPLATE_WIDTH,
+                signportTemplateTop + TEMPLATE_HEIGHT, 0xEE101010);
+        graphics.outline(signportTemplateLeft, signportTemplateTop, TEMPLATE_WIDTH, TEMPLATE_HEIGHT, 0xFF6F8CAF);
+        graphics.centeredText(net.minecraft.client.Minecraft.getInstance().font, Component.literal("SignPort Template"),
+                signportTemplateLeft + TEMPLATE_WIDTH / 2, signportTemplateTop + 10, 0xFFFFFFFF);
+        graphics.text(net.minecraft.client.Minecraft.getInstance().font, "Target", signportTemplateLeft + 14, signportTemplateTop + 39, 0xFFE0E0E0);
+        graphics.text(net.minecraft.client.Minecraft.getInstance().font, "Dimension", signportTemplateLeft + 14, signportTemplateTop + 67, 0xFFE0E0E0);
+        graphics.text(net.minecraft.client.Minecraft.getInstance().font, "Label", signportTemplateLeft + 14, signportTemplateTop + 95, 0xFFE0E0E0);
+
+        renderTemplateDimensionDropdown(graphics, mouseX, mouseY);
+        renderTemplateSuggestionPopup(graphics, mouseX, mouseY);
+    }
+
+    private void renderTemplateSuggestionPopup(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        if (signportTemplateSuggestions.isEmpty() || !signportTemplateTargetField.isFocused()) return;
+
+        signportTemplateSuggestionX = signportTemplateTargetField.getX();
+        signportTemplateSuggestionY = signportTemplateTargetField.getY() + signportTemplateTargetField.getHeight() + 2;
+        graphics.fill(signportTemplateSuggestionX - 2, signportTemplateSuggestionY - 2,
+                signportTemplateSuggestionX + SUGGESTION_WIDTH + 2,
+                signportTemplateSuggestionY + signportTemplateSuggestions.size() * SUGGESTION_ROW_HEIGHT + 2,
+                0xF0101010);
+        graphics.outline(signportTemplateSuggestionX - 2, signportTemplateSuggestionY - 2, SUGGESTION_WIDTH + 4,
+                signportTemplateSuggestions.size() * SUGGESTION_ROW_HEIGHT + 4, 0xFF6F8CAF);
+        for (int i = 0; i < signportTemplateSuggestions.size(); i++) {
+            AnchorClient anchor = signportTemplateSuggestions.get(i);
+            int y = signportTemplateSuggestionY + i * SUGGESTION_ROW_HEIGHT;
+            if (i == signportTemplateSelectedSuggestion || (mouseX >= signportTemplateSuggestionX
+                    && mouseX < signportTemplateSuggestionX + SUGGESTION_WIDTH
+                    && mouseY >= y && mouseY < y + SUGGESTION_ROW_HEIGHT)) {
+                graphics.fill(signportTemplateSuggestionX, y, signportTemplateSuggestionX + SUGGESTION_WIDTH,
+                        y + SUGGESTION_ROW_HEIGHT, 0xFF31465E);
+            }
+            graphics.text(net.minecraft.client.Minecraft.getInstance().font,
+                    anchor.name() + " (" + anchor.dimension().identifier() + ")",
+                    signportTemplateSuggestionX + 4, y + 3, 0xFFFFFFFF);
+        }
+    }
+
+    private void renderTemplateDimensionDropdown(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        if (!signportTemplateDimensionOpen) return;
+
+        signportTemplateDimensionX = signportTemplateDimensionButton.getX();
+        signportTemplateDimensionY = signportTemplateDimensionButton.getY() + signportTemplateDimensionButton.getHeight() + 2;
+        graphics.fill(signportTemplateDimensionX - 2, signportTemplateDimensionY - 2,
+                signportTemplateDimensionX + TEMPLATE_FIELD_WIDTH + 2,
+                signportTemplateDimensionY + signportTemplateDimensionOptions.size() * TEMPLATE_ROW_HEIGHT + 2,
+                0xF0101010);
+        graphics.outline(signportTemplateDimensionX - 2, signportTemplateDimensionY - 2, TEMPLATE_FIELD_WIDTH + 4,
+                signportTemplateDimensionOptions.size() * TEMPLATE_ROW_HEIGHT + 4, 0xFF6F8CAF);
+        for (int i = 0; i < signportTemplateDimensionOptions.size(); i++) {
+            int y = signportTemplateDimensionY + i * TEMPLATE_ROW_HEIGHT;
+            if (i == signportTemplateSelectedDimension || (mouseX >= signportTemplateDimensionX
+                    && mouseX < signportTemplateDimensionX + TEMPLATE_FIELD_WIDTH
+                    && mouseY >= y && mouseY < y + TEMPLATE_ROW_HEIGHT)) {
+                graphics.fill(signportTemplateDimensionX, y, signportTemplateDimensionX + TEMPLATE_FIELD_WIDTH,
+                        y + TEMPLATE_ROW_HEIGHT, 0xFF31465E);
+            }
+            graphics.text(net.minecraft.client.Minecraft.getInstance().font, signportTemplateDimensionOptions.get(i).label(),
+                    signportTemplateDimensionX + 4, y + 3, 0xFFFFFFFF);
+        }
+    }
+
+    private void updateTemplateButtonVisibility() {
+        if (signportTemplateButton != null) {
+            signportTemplateButton.visible = canShowTemplateButton();
+            signportTemplateButton.active = canShowTemplateButton();
+        }
+        if (!canShowTemplateButton() && signportTemplateOpen) {
+            closeTemplateDialog();
+        }
+    }
+
+    private boolean canShowTemplateButton() {
+        return SignPortClientConfig.get().signTemplateButtonEnabled
+                && SignPortClientState.permissions().canCreatePortSign();
+    }
+
+    private void updateTemplateWidgetVisibility() {
+        if (signportTemplateTargetField == null) return;
+        signportTemplateTargetField.visible = signportTemplateOpen;
+        signportTemplateTargetField.active = signportTemplateOpen;
+        signportTemplateLabelField.visible = signportTemplateOpen;
+        signportTemplateLabelField.active = signportTemplateOpen;
+        signportTemplateDimensionButton.visible = signportTemplateOpen;
+        signportTemplateDimensionButton.active = signportTemplateOpen && signportTemplateDimensionOptions.size() > 1;
+        signportTemplateApplyButton.visible = signportTemplateOpen;
+        signportTemplateApplyButton.active = signportTemplateOpen
+                && !PortSignFormat.normalizeLine(signportTemplateTargetField.getValue()).isBlank();
+        signportTemplateCancelButton.visible = signportTemplateOpen;
+        signportTemplateCancelButton.active = signportTemplateOpen;
+        updateDimensionButtonLabel();
+    }
+
+    private void updateDimensionButtonLabel() {
+        if (signportTemplateDimensionButton == null || signportTemplateDimensionOptions.isEmpty()) return;
+        signportTemplateDimensionButton.setMessage(Component.literal("Dimension: "
+                + signportTemplateDimensionOptions.get(signportTemplateSelectedDimension).label()));
+    }
+
+    private record DimensionOption(ResourceKey<Level> dimension) {
+        private static final DimensionOption DEFAULT = new DimensionOption(null);
+
+        boolean isDefault() {
+            return dimension == null;
+        }
+
+        String label() {
+            return isDefault() ? "(use current dimension default)" : dimension.identifier().toString();
+        }
+    }
+
     private final class SuggestionClickTarget extends AbstractWidget {
         private SuggestionClickTarget() {
             super(0, 0, 0, 0, net.minecraft.network.chat.Component.empty());
@@ -195,6 +582,17 @@ public abstract class AbstractSignEditScreenMixin {
 
         @Override
         public boolean isMouseOver(double mouseX, double mouseY) {
+            if (signportTemplateOpen) {
+                return (mouseX >= signportTemplateSuggestionX
+                        && mouseX < signportTemplateSuggestionX + SUGGESTION_WIDTH
+                        && mouseY >= signportTemplateSuggestionY
+                        && mouseY < signportTemplateSuggestionY + signportTemplateSuggestions.size() * SUGGESTION_ROW_HEIGHT)
+                        || (signportTemplateDimensionOpen
+                        && mouseX >= signportTemplateDimensionX
+                        && mouseX < signportTemplateDimensionX + TEMPLATE_FIELD_WIDTH
+                        && mouseY >= signportTemplateDimensionY
+                        && mouseY < signportTemplateDimensionY + signportTemplateDimensionOptions.size() * TEMPLATE_ROW_HEIGHT);
+            }
             refreshSuggestions();
             return !signportSuggestions.isEmpty()
                     && mouseX >= signportPopupX

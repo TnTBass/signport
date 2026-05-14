@@ -6,21 +6,16 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
-- Added the optional client anchor browser on the default `J` keybind, with dimension tabs, search, sort, collapsible groups, and synced-cache teleport actions.
-- Added portal sign editor autocomplete for anchor names on line 3, including dimension-scoped suggestions when line 4 contains a dimension id.
-- Added the optional bundled client foundation: anchor/permission sync, the portal-sign HUD lookup hint, and `config/signport-client.json` with a Cloth Config/ModMenu soft-dependency screen. Permission sync refreshes on join, respawn, and dimension change.
-- Fixed source hygiene check failing on Windows due to CRLF line endings in workflow files.
-- Logged a one-line anchor summary at server start (`Loaded N anchor(s): X in overworld, Y in the_nether`); legacy file migration now also runs eagerly at startup instead of on the first write.
-- Auto-sync Modrinth project description from `docs/modrinth-listing.md` on every release; added hygiene gates to ensure both listing docs stay structurally complete.
-- Added tab-completion of anchor names (in the player's current dimension) for `/sp tp <name>` and `/sp anchor delete <name>`.
-- Paginated `/sp anchor list` with a clickable `[« Prev] page X/Y [Next »]` footer; out-of-range pages clamp to the last valid page.
-- Added an optional case-insensitive substring filter to `/sp anchor list [filter] [page]`; the page footer preserves the active filter.
-- Added `anchorListPageSize` config option (default 10) controlling how many anchors are shown per `/sp anchor list` page.
-- Added optional anchor groups via `/sp anchor create <name> <group>` and `/sp anchor setgroup <name> <group>`, with grouped `/sp anchor list` headers and group-name tab-completion.
-- Added `/sp anchor near [radius]` for distance-sorted anchors in the player's current dimension, using new `defaultNearRadius` config (default 128).
-- Added `/sp anchor list --sort=name|distance|recent`; distance sorting shows meters from the player and recent sorting uses new anchor creation timestamps while keeping legacy anchors last.
-- Added optional BlueMap integration that publishes anchors as map markers when BlueMap is installed, controlled by new `bluemapEnabled` config.
-- Documented the updated phase workflow and added a source hygiene gate for stale `ResourceKey.location()` usage under MC 26.1.2 Mojang mappings.
+- Added client-side SignPort helpers when both client and server have SignPort installed: synced anchor/permission data, HUD lookup hints for portal signs, the anchor browser, sign-editor autocomplete, and a permission-gated SignPort Template form.
+- Added the SignPort anchor browser on the default `J` keybind, with dimension tabs, search, name/distance/recent sorting, collapsible group sections, and synced-cache teleport actions.
+- Added portal sign editor autocomplete and the SignPort Template form to make valid portal signs easier to create from the synced anchor cache.
+- Added tab-completion of anchor names for `/sp tp <name>` and `/sp anchor delete <name>`.
+- Added paginated `/sp anchor list [filter] [page]`, clickable previous/next navigation, configurable `anchorListPageSize`, and case-insensitive filtering.
+- Added optional anchor groups via `/sp anchor create <name> <group>` and `/sp anchor setgroup <name> <group>`, with grouped list output and group-name tab-completion.
+- Added `/sp anchor near [radius]`, `defaultNearRadius`, and `/sp anchor list --sort=name|distance|recent`.
+- Added optional BlueMap integration for publishing anchors as map markers, controlled by `bluemapEnabled`.
+- Added startup anchor summary logging and eager legacy file migration.
+- Added release/docs hygiene improvements, including Modrinth description sync, listing validation gates, workflow/source hygiene fixes, and stale `ResourceKey.location()` checks.
 
 ## 1.2.1+mc26.1.2 - 2026-05-10
 

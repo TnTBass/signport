@@ -32,6 +32,12 @@ public final class ClothConfigBridge {
                                 SignPortClientConfig.get().signEditorAutocompleteEnabled)
                         .setDefaultValue(SignPortClientConfig.Values.defaults().signEditorAutocompleteEnabled)
                         .setSaveConsumer(SignPortClientConfig::setSignEditorAutocompleteEnabled)
+                        .build())
+                .addEntry(entryBuilder.startBooleanToggle(
+                                Component.literal("Sign template button"),
+                                SignPortClientConfig.get().signTemplateButtonEnabled)
+                        .setDefaultValue(SignPortClientConfig.Values.defaults().signTemplateButtonEnabled)
+                        .setSaveConsumer(SignPortClientConfig::setSignTemplateButtonEnabled)
                         .build());
         builder.setSavingRunnable(SignPortClientConfig::save);
         return builder.build();
