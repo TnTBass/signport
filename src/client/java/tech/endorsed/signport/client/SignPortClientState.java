@@ -5,6 +5,7 @@ import net.minecraft.world.level.Level;
 import tech.endorsed.signport.network.AnchorSyncPayloads;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -52,6 +53,18 @@ public final class SignPortClientState {
 
     public static AnchorSyncPayloads.PermissionSnapshot permissions() {
         return permissions;
+    }
+
+    public static List<AnchorClient> anchors() {
+        return CACHE.values().stream()
+                .flatMap(anchors -> anchors.values().stream())
+                .toList();
+    }
+
+    public static List<AnchorClient> anchors(ResourceKey<Level> dimension) {
+        Map<String, AnchorClient> anchors = CACHE.get(dimension);
+        if (anchors == null) return List.of();
+        return List.copyOf(anchors.values());
     }
 
     public static Optional<AnchorClient> find(String name, ResourceKey<Level> dimension) {

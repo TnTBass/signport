@@ -43,9 +43,13 @@ BlueMap is optional. SignPort runs normally without it, and server packs that wa
 
 ## Optional Client Features
 
-The same SignPort jar also includes an optional Fabric client mod. Vanilla clients still work normally: servers only send SignPort client payloads to clients that advertise the channel. When both sides have SignPort, the client receives anchor and permission sync data and shows a small hotbar lookup hint while you look at a portal sign.
+The same SignPort jar also includes an optional Fabric client mod. Vanilla clients still work normally: servers only send SignPort client payloads to clients that advertise the channel. When both sides have SignPort, the client receives anchor and permission sync data for the features below.
 
-Client settings live in `config/signport-client.json`; `hudHintEnabled` controls the lookup hint and defaults to `true`. If Cloth Config is installed, the settings screen can be opened through the default-unbound `key.signport.config` keybind. ModMenu users also get a SignPort settings entry when ModMenu and Cloth Config are both present.
+- Looking at a portal sign shows a small hotbar lookup hint for the resolved anchor.
+- Press `J` to open the SignPort anchor browser. It has dimension tabs, search, name/distance/recent sorting, collapsible group sections, and click-to-run `/sp tp <name>` rows. Players with anchor delete permission also see a raw `/tp @s <x> <y> <z>` shortcut.
+- While editing a portal sign, line 3 autocompletes anchor names from the synced cache. If line 4 contains a dimension id, suggestions are scoped to that dimension; otherwise suggestions include their dimension in parentheses.
+
+Client settings live in `config/signport-client.json`. `hudHintEnabled`, `browserKeybindEnabled`, and `signEditorAutocompleteEnabled` all default to `true`; disabling the browser keybind takes effect after restarting the game. If Cloth Config is installed, the settings screen can be opened through the default-unbound `key.signport.config` keybind. ModMenu users also get a SignPort settings entry when ModMenu and Cloth Config are both present.
 
 ## Portal Signs
 

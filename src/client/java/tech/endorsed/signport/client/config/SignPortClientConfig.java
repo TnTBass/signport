@@ -49,7 +49,10 @@ public final class SignPortClientConfig {
                 return defaults;
             }
             JsonObject object = root.getAsJsonObject();
-            return new Values(readBoolean(object, "hudHintEnabled", defaults.hudHintEnabled));
+            return new Values(
+                    readBoolean(object, "hudHintEnabled", defaults.hudHintEnabled),
+                    readBoolean(object, "browserKeybindEnabled", defaults.browserKeybindEnabled),
+                    readBoolean(object, "signEditorAutocompleteEnabled", defaults.signEditorAutocompleteEnabled));
         } catch (Exception exception) {
             SignPort.LOGGER.warn("Could not read SignPort client config at {}; using defaults.", configPath, exception);
             return defaults;
@@ -65,6 +68,14 @@ public final class SignPortClientConfig {
 
     public static void setHudHintEnabled(boolean enabled) {
         values.hudHintEnabled = enabled;
+    }
+
+    public static void setBrowserKeybindEnabled(boolean enabled) {
+        values.browserKeybindEnabled = enabled;
+    }
+
+    public static void setSignEditorAutocompleteEnabled(boolean enabled) {
+        values.signEditorAutocompleteEnabled = enabled;
     }
 
     private static void save(Path configPath, Values values) {
@@ -93,13 +104,17 @@ public final class SignPortClientConfig {
 
     public static final class Values {
         public boolean hudHintEnabled;
+        public boolean browserKeybindEnabled;
+        public boolean signEditorAutocompleteEnabled;
 
-        public Values(boolean hudHintEnabled) {
+        public Values(boolean hudHintEnabled, boolean browserKeybindEnabled, boolean signEditorAutocompleteEnabled) {
             this.hudHintEnabled = hudHintEnabled;
+            this.browserKeybindEnabled = browserKeybindEnabled;
+            this.signEditorAutocompleteEnabled = signEditorAutocompleteEnabled;
         }
 
         public static Values defaults() {
-            return new Values(true);
+            return new Values(true, true, true);
         }
     }
 }

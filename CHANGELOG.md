@@ -6,6 +6,8 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
+- Added the optional client anchor browser on the default `J` keybind, with dimension tabs, search, sort, collapsible groups, and synced-cache teleport actions.
+- Added portal sign editor autocomplete for anchor names on line 3, including dimension-scoped suggestions when line 4 contains a dimension id.
 - Added the optional bundled client foundation: anchor/permission sync, the portal-sign HUD lookup hint, and `config/signport-client.json` with a Cloth Config/ModMenu soft-dependency screen. Permission sync refreshes on join, respawn, and dimension change.
 - Fixed source hygiene check failing on Windows due to CRLF line endings in workflow files.
 - Logged a one-line anchor summary at server start (`Loaded N anchor(s): X in overworld, Y in the_nether`); legacy file migration now also runs eagerly at startup instead of on the first write.

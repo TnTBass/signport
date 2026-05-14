@@ -9,14 +9,19 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.KeyMapping.Category;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import tech.endorsed.signport.SignPort;
 import tech.endorsed.signport.client.config.ConfigScreenFactory;
 import tech.endorsed.signport.client.config.SignPortClientConfig;
+import tech.endorsed.signport.client.gui.AnchorBrowserScreen;
 import tech.endorsed.signport.client.hud.PortSignHudHint;
 import tech.endorsed.signport.network.AnchorSyncPayloads;
 
 public class SignPortClient implements ClientModInitializer {
+    private static final Category SIGNPORT_CATEGORY =
+            Category.register(Identifier.fromNamespaceAndPath(SignPort.MOD_ID, "signport"));
     private static KeyMapping configKey;
+    private static KeyMapping browserKey;
 
     @Override
     public void onInitializeClient() {
@@ -32,7 +37,13 @@ public class SignPortClient implements ClientModInitializer {
         configKey = registerKeyBinding(new KeyMapping(
                 "key.signport.config",
                 InputConstants.UNKNOWN.getValue(),
-                Category.MISC));
+                SIGNPORT_CATEGORY));
+        if (SignPortClientConfig.get().browserKeybindEnabled) {
+            browserKey = registerKeyBinding(new KeyMapping(
+                    "key.signport.browser",
+                    InputConstants.KEY_J,
+                    SIGNPORT_CATEGORY));
+        }
 
         ClientTickEvents.END_CLIENT_TICK.register(SignPortClient::tick);
         SignPort.LOGGER.info("[SignPort] Client foundation initialized.");
@@ -52,7 +63,17 @@ public class SignPortClient implements ClientModInitializer {
         while (configKey.consumeClick()) {
             openConfigScreen(client);
         }
+        if (browserKey != null) {
+            while (browserKey.consumeClick()) {
+                openAnchorBrowser(client);
+            }
+        }
         PortSignHudHint.tick(client);
+    }
+
+    public static void openAnchorBrowser(Minecraft client) {
+        if (client.player == null) return;
+        client.setScreen(new AnchorBrowserScreen(client.screen));
     }
 
     public static void openConfigScreen(Minecraft client) {

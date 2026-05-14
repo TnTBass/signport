@@ -20,6 +20,19 @@ public final class ClothConfigBridge {
                         .setDefaultValue(SignPortClientConfig.Values.defaults().hudHintEnabled)
                         .setSaveConsumer(SignPortClientConfig::setHudHintEnabled)
                         .build());
+        builder.getOrCreateCategory(Component.literal("Browser"))
+                .addEntry(entryBuilder.startBooleanToggle(
+                                Component.literal("Anchor browser keybind (restart required)"),
+                                SignPortClientConfig.get().browserKeybindEnabled)
+                        .setDefaultValue(SignPortClientConfig.Values.defaults().browserKeybindEnabled)
+                        .setSaveConsumer(SignPortClientConfig::setBrowserKeybindEnabled)
+                        .build())
+                .addEntry(entryBuilder.startBooleanToggle(
+                                Component.literal("Sign editor autocomplete"),
+                                SignPortClientConfig.get().signEditorAutocompleteEnabled)
+                        .setDefaultValue(SignPortClientConfig.Values.defaults().signEditorAutocompleteEnabled)
+                        .setSaveConsumer(SignPortClientConfig::setSignEditorAutocompleteEnabled)
+                        .build());
         builder.setSavingRunnable(SignPortClientConfig::save);
         return builder.build();
     }
