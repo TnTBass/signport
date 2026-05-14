@@ -1,9 +1,11 @@
 package tech.endorsed.signport;
 
+import net.fabricmc.api.EnvType;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
+import net.fabricmc.loader.api.FabricLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tech.endorsed.signport.bluemap.BlueMapIntegration;
@@ -24,6 +26,11 @@ public class SignPort implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		SignPortConfig.load();
+		if (!shouldRegisterServerHooks(FabricLoader.getInstance().getEnvironmentType())) {
+			LOGGER.info("[SignPort] Server-side hooks are disabled on physical clients.");
+			return;
+		}
+
 		BlueMapIntegration.initialize();
 		AnchorSyncServer.register();
 
@@ -56,5 +63,9 @@ public class SignPort implements ModInitializer {
 		});
 
 		ServerLifecycleEvents.SERVER_STOPPING.register(BlueMapIntegration::serverStopping);
+	}
+
+	static boolean shouldRegisterServerHooks(EnvType environmentType) {
+		return environmentType == EnvType.SERVER;
 	}
 }
