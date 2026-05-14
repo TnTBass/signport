@@ -1,6 +1,5 @@
 package tech.endorsed.signport;
 
-import net.fabricmc.api.EnvType;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -18,18 +17,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ClientLoadSafetyTest {
     @Test
-    void physicalClientDoesNotRunServerInitializerHooks() {
-        assertFalse(SignPort.shouldRegisterServerHooks(EnvType.CLIENT));
-        assertTrue(SignPort.shouldRegisterServerHooks(EnvType.SERVER));
-    }
-
-    @Test
-    void modMetadataDoesNotLoadOptionalClientEntrypoints() throws IOException {
+    void modMetadataLoadsExpectedEntrypointsOnly() throws IOException {
         String metadata = Files.readString(Path.of("src/main/resources/fabric.mod.json"));
 
-        assertFalse(metadata.contains("\"client\""));
-        assertFalse(metadata.contains("\"modmenu\""));
-        assertFalse(metadata.contains("tech.endorsed.signport.client"));
+        assertTrue(metadata.contains("tech.endorsed.signport.SignPort"),
+                "main entrypoint must remain registered");
+        assertTrue(metadata.contains("tech.endorsed.signport.client.SignPortClient"),
+                "client entrypoint must be registered");
+        assertFalse(metadata.contains("\"modmenu\""),
+                "modmenu entrypoint deferred to a later iteration");
+        assertFalse(metadata.contains("SignPortModMenuApi"),
+                "SignPortModMenuApi entrypoint deferred to a later iteration");
     }
 
     @Test

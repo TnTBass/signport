@@ -48,6 +48,16 @@ AGENTS.md
 # local workspace notes and runtime logs
 prompts/
 logs/
+CLIENT_CRASH_HANDOFF.md
+CLAUDE_CLIENT_CRASH_REVIEW.md
+COLLAB_WORKFLOW.md
+COLLAB_NOTES.local.md
 
 # claude code working directory
 .claude/
+
+# local build / debug scratch
+build_out.txt
+compile_out.txt
+tasks_out.txt
+old_mixin_tmp.java

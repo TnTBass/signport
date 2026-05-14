@@ -17,6 +17,9 @@
 	"entrypoints": {
 		"main": [
 			"tech.endorsed.signport.SignPort"
+		],
+		"client": [
+			"tech.endorsed.signport.client.SignPortClient"
 		]
 	},
 	"mixins": [

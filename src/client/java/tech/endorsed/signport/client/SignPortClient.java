@@ -39,19 +39,8 @@ public class SignPortClient implements ClientModInitializer {
             initialSyncRequested = false;
         });
 
-        configKey = registerKeyBinding(new KeyMapping(
-                "key.signport.config",
-                InputConstants.UNKNOWN.getValue(),
-                SIGNPORT_CATEGORY));
-        if (SignPortClientConfig.get().browserKeybindEnabled) {
-            browserKey = registerKeyBinding(new KeyMapping(
-                    "key.signport.browser",
-                    InputConstants.KEY_J,
-                    SIGNPORT_CATEGORY));
-        }
-
         ClientTickEvents.END_CLIENT_TICK.register(SignPortClient::tick);
-        SignPort.LOGGER.info("[SignPort] Client foundation initialized.");
+        SignPort.LOGGER.info("[SignPort] Client foundation initialized (networking only; keybinds/HUD/browser deferred).");
     }
 
     private static KeyMapping registerKeyBinding(KeyMapping keyMapping) {
@@ -66,15 +55,6 @@ public class SignPortClient implements ClientModInitializer {
 
     private static void tick(Minecraft client) {
         requestInitialSyncWhenReady(client);
-        while (configKey.consumeClick()) {
-            openConfigScreen(client);
-        }
-        if (browserKey != null) {
-            while (browserKey.consumeClick()) {
-                openAnchorBrowser(client);
-            }
-        }
-        PortSignHudHint.tick(client);
     }
 
     private static void requestInitialSyncWhenReady(Minecraft client) {
