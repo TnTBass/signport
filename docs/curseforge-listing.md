@@ -21,8 +21,8 @@ Original project by [approved (GitHub)](https://github.com/approved) - [approved
 
 SignPort's core portal and command features are server-side. Vanilla clients can join and use portal signs normally.
 
-- **SignPort client mod:** optional on players' clients. When both client and server have SignPort installed, the client receives synced anchor and permission data. This enables portal-sign HUD lookup hints, the `J` anchor browser, sign-editor autocomplete, and the permission-gated SignPort Template button.
-- **BlueMap:** optional server-side integration. When BlueMap is installed and `bluemapEnabled` is `true`, SignPort publishes anchors as marker sets by dimension.
+- **SignPort client mod:** optional on players' clients. When both client and server have SignPort installed, the client receives synced anchor and permission data. This enables portal-sign HUD lookup hints, an anchor browser opened with the `J` key, sign-editor autocomplete, and the permission-gated SignPort Template button.
+- **BlueMap:** optional server-side integration. If BlueMap is installed, SignPort publishes anchors as marker sets by dimension by default. Server owners can disable this with `bluemapEnabled=false` in `config/signport.json`.
 - **LuckPerms or another `fabric-permissions-api` provider:** optional server-side permission provider. Without one, SignPort uses vanilla operator fallback levels.
 - **Cloth Config:** optional client-side config screen. If installed, SignPort's client settings can be edited in-game.
 - **ModMenu:** optional client-side settings entry. If ModMenu and Cloth Config are both installed, SignPort appears in ModMenu's config list.
@@ -75,6 +75,26 @@ SignPort works with LuckPerms through `fabric-permissions-api`. If no permission
 - `signport.sign.edit` — operator level 2
 - `signport.sign.break` — operator level 2
 - `signport.sign.use` — everyone
+
+## Configuration
+
+On first server start, SignPort creates `config/signport.json` with these server settings:
+
+- `teleportCommandDefault` — default `true`; allows everyone to use `/sp tp` when no permission provider overrides it.
+- `signUseDefault` — default `true`; allows everyone to use portal signs when no permission provider overrides it.
+- `protectedActionOpLevel` — default `2`; vanilla op level fallback for protected anchor and portal-sign actions.
+- `crossDimensionPortalSigns` — default `true`; lets line 4 on signs target another dimension.
+- `safeTeleportSearch` — default `true`; searches for a safe nearby standing spot before teleporting.
+- `anchorListPageSize` — default `10`; number of anchors shown per `/sp anchor list` page.
+- `defaultNearRadius` — default `128`; default radius for `/sp anchor near`.
+- `bluemapEnabled` — default `true`; enables BlueMap anchor markers when BlueMap is installed.
+
+When installed client-side, SignPort creates `config/signport-client.json` with these client settings:
+
+- `hudHintEnabled` — default `true`; shows portal-sign lookup hints in the hotbar.
+- `browserKeybindEnabled` — default `true`; enables the anchor browser keybind. Restart the game after changing this value.
+- `signEditorAutocompleteEnabled` — default `true`; enables anchor-name autocomplete while editing signs.
+- `signTemplateButtonEnabled` — default `true`; shows the SignPort Template button when the server reports that the player can create portal signs.
 
 ## Requirements
 

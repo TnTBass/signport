@@ -104,7 +104,7 @@ SignPort supports LuckPerms through `fabric-permissions-api`. If no permission p
 
 ## Configuration
 
-On first server start, SignPort creates `config/signport.json` with the default policy values.
+On first server start, SignPort creates `config/signport.json` with the default server values.
 
 | Option | Default | Description |
 | --- | --- | --- |
@@ -116,6 +116,15 @@ On first server start, SignPort creates `config/signport.json` with the default 
 | `anchorListPageSize` | `10` | Number of anchors shown per page in `/sp anchor list`. Must be between 1 and 100. |
 | `defaultNearRadius` | `128` | Radius used by `/sp anchor near` when no radius is provided. Must be between 1 and 10000. |
 | `bluemapEnabled` | `true` | Enables SignPort anchor markers when BlueMap is installed. |
+
+When installed client-side, SignPort also creates `config/signport-client.json` with these optional client feature toggles:
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `hudHintEnabled` | `true` | Shows hotbar lookup hints when looking at portal signs. |
+| `browserKeybindEnabled` | `true` | Enables the anchor browser keybind. Restart the game after changing this value. |
+| `signEditorAutocompleteEnabled` | `true` | Enables anchor-name autocomplete while editing portal signs. |
+| `signTemplateButtonEnabled` | `true` | Shows the SignPort Template button when the server reports that the player can create portal signs. |
 
 ## Releases
 
