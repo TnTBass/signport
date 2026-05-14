@@ -77,7 +77,7 @@ jobs:
         run: |
           $version = $env:GITHUB_REF_NAME.Substring(1)
           ./scripts/upload-modrinth.ps1 `
-            -Slug "modern-signport" `
+            -Slug "signport" `
             -Version $version `
             -JarPath "build/libs/signport-$version.jar" `
             -SourcesJarPath "build/libs/signport-$version-sources.jar" `

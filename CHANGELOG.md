@@ -18,6 +18,7 @@ This project uses SemVer-style mod versions. Release entries should include the 
 - Added optional BlueMap integration for publishing anchors as map markers, controlled by `bluemapEnabled`.
 - Added startup anchor summary logging and eager legacy file migration.
 - Added release/docs hygiene improvements, including Modrinth description sync, listing validation gates, workflow/source hygiene fixes, and stale `ResourceKey.location()` checks.
+- Updated Modrinth publishing to use the `signport` project slug.
 
 ## 1.2.1+mc26.1.2 - 2026-05-10
 
