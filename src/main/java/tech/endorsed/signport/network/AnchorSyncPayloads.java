@@ -20,6 +20,8 @@ public final class AnchorSyncPayloads {
             new CustomPacketPayload.Type<>(id("anchor_sync_full"));
     public static final CustomPacketPayload.Type<Delta> DELTA_TYPE =
             new CustomPacketPayload.Type<>(id("anchor_sync_delta"));
+    public static final CustomPacketPayload.Type<Ready> READY_TYPE =
+            new CustomPacketPayload.Type<>(id("anchor_sync_ready"));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, Full> FULL_CODEC = StreamCodec.of(
             AnchorSyncPayloads::writeFull,
@@ -27,7 +29,12 @@ public final class AnchorSyncPayloads {
     public static final StreamCodec<RegistryFriendlyByteBuf, Delta> DELTA_CODEC = StreamCodec.of(
             AnchorSyncPayloads::writeDelta,
             AnchorSyncPayloads::readDelta);
+    public static final StreamCodec<RegistryFriendlyByteBuf, Ready> READY_CODEC = StreamCodec.of(
+            (buf, payload) -> {
+            },
+            buf -> new Ready());
     private static boolean clientboundRegistered = false;
+    private static boolean serverboundRegistered = false;
 
     private AnchorSyncPayloads() {
     }
@@ -41,6 +48,16 @@ public final class AnchorSyncPayloads {
         PayloadTypeRegistry.clientboundPlay().register(FULL_TYPE, FULL_CODEC);
         PayloadTypeRegistry.clientboundPlay().register(DELTA_TYPE, DELTA_CODEC);
         clientboundRegistered = true;
+    }
+
+    public static synchronized void registerServerbound() {
+        if (serverboundRegistered) return;
+        PayloadTypeRegistry.serverboundPlay().register(READY_TYPE, READY_CODEC);
+        serverboundRegistered = true;
+    }
+
+    public static boolean shouldRequestInitialSync(boolean playerPresent, boolean canSendReady, boolean alreadyRequested) {
+        return playerPresent && canSendReady && !alreadyRequested;
     }
 
     public record Full(List<SyncedAnchor> anchors, PermissionSnapshot permissions) implements CustomPacketPayload {
@@ -74,6 +91,13 @@ public final class AnchorSyncPayloads {
         CREATE,
         DELETE,
         UPDATE
+    }
+
+    public record Ready() implements CustomPacketPayload {
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return READY_TYPE;
+        }
     }
 
     public record SyncedAnchor(

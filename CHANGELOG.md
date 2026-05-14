@@ -9,6 +9,10 @@ This project uses SemVer-style mod versions. Release entries should include the 
 - Clarified the public BlueMap integration description.
 - Documented server and client config settings in the README and listing descriptions.
 
+## 2.0.1+mc26.1.2 - 2026-05-14
+
+- Fixed a multiplayer client join crash by requesting the initial SignPort anchor sync only after the local client player exists.
+
 ## 2.0.0+mc26.1.2 - 2026-05-14
 
 - Added client-side SignPort helpers when both client and server have SignPort installed: synced anchor/permission data, HUD lookup hints for portal signs, the anchor browser, sign-editor autocomplete, and a permission-gated SignPort Template form.

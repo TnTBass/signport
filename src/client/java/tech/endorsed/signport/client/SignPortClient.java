@@ -22,17 +22,22 @@ public class SignPortClient implements ClientModInitializer {
             Category.register(Identifier.fromNamespaceAndPath(SignPort.MOD_ID, "signport"));
     private static KeyMapping configKey;
     private static KeyMapping browserKey;
+    private static boolean initialSyncRequested = false;
 
     @Override
     public void onInitializeClient() {
         SignPortClientConfig.load();
         AnchorSyncPayloads.registerClientbound();
+        AnchorSyncPayloads.registerServerbound();
 
         ClientPlayNetworking.registerGlobalReceiver(AnchorSyncPayloads.FULL_TYPE, (payload, context) ->
                 context.client().execute(() -> SignPortClientState.applyFull(payload)));
         ClientPlayNetworking.registerGlobalReceiver(AnchorSyncPayloads.DELTA_TYPE, (payload, context) ->
                 context.client().execute(() -> SignPortClientState.applyDelta(payload)));
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> SignPortClientState.clear());
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            SignPortClientState.clear();
+            initialSyncRequested = false;
+        });
 
         configKey = registerKeyBinding(new KeyMapping(
                 "key.signport.config",
@@ -60,6 +65,7 @@ public class SignPortClient implements ClientModInitializer {
     }
 
     private static void tick(Minecraft client) {
+        requestInitialSyncWhenReady(client);
         while (configKey.consumeClick()) {
             openConfigScreen(client);
         }
@@ -69,6 +75,18 @@ public class SignPortClient implements ClientModInitializer {
             }
         }
         PortSignHudHint.tick(client);
+    }
+
+    private static void requestInitialSyncWhenReady(Minecraft client) {
+        boolean playerPresent = client.player != null;
+        boolean canSendReady = false;
+        if (playerPresent) {
+            canSendReady = ClientPlayNetworking.canSend(AnchorSyncPayloads.READY_TYPE);
+        }
+        if (AnchorSyncPayloads.shouldRequestInitialSync(playerPresent, canSendReady, initialSyncRequested)) {
+            initialSyncRequested = true;
+            ClientPlayNetworking.send(new AnchorSyncPayloads.Ready());
+        }
     }
 
     public static void openAnchorBrowser(Minecraft client) {
