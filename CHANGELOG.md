@@ -6,6 +6,7 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
+- Clarified the public BlueMap integration description.
 - Documented server and client config settings in the README and listing descriptions.
 
 ## 2.0.0+mc26.1.2 - 2026-05-14

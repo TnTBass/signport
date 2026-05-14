@@ -39,7 +39,7 @@ The shorter `/sp` alias can be used in place of `/signport`.
 
 When BlueMap is installed on the server, SignPort publishes anchors as POI markers on each BlueMap world map. Markers are grouped under "SignPort Anchors", show the anchor group (or `ungrouped`) and dimension in the popup, and include the in-game teleport command `/sp tp <name>`.
 
-BlueMap is optional. SignPort runs normally without it, and server packs that want to require BlueMap can enforce that in their own modpack metadata. Set `bluemapEnabled` to `false` in `config/signport.json` to disable marker registration while keeping BlueMap installed.
+BlueMap is optional. When BlueMap is installed, SignPort publishes anchors as marker sets by dimension. This is enabled by default; set `bluemapEnabled` to `false` in `config/signport.json` to disable marker registration while keeping BlueMap installed.
 
 ## Optional Client Features
 

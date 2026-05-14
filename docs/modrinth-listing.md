@@ -73,7 +73,7 @@ Original project by [approved (GitHub)](https://github.com/approved) - [approved
 SignPort's core portal and command features are server-side. Vanilla clients can join and use portal signs normally.
 
 - **SignPort client mod:** optional on players' clients. When both client and server have SignPort installed, the client receives synced anchor and permission data. This enables portal-sign HUD lookup hints, an anchor browser opened with the `J` key, sign-editor autocomplete, and the permission-gated SignPort Template button.
-- **BlueMap:** optional server-side integration. If BlueMap is installed, SignPort publishes anchors as marker sets by dimension by default. Server owners can disable this with `bluemapEnabled=false` in `config/signport.json`.
+- **BlueMap:** optional server-side integration. When BlueMap is installed, SignPort publishes anchors as marker sets by dimension. Enabled by default.
 - **LuckPerms or another `fabric-permissions-api` provider:** optional server-side permission provider. Without one, SignPort uses vanilla operator fallback levels.
 - **Cloth Config:** optional client-side config screen. If installed, SignPort's client settings can be edited in-game.
 - **ModMenu:** optional client-side settings entry. If ModMenu and Cloth Config are both installed, SignPort appears in ModMenu's config list.
