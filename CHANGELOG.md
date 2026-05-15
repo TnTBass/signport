@@ -6,6 +6,8 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
+## 2.1.0+mc26.1.2 - 2026-05-14
+
 - Fixed redundant full anchor sync on dimension change: the server no longer re-sends all anchors when the player changes dimensions (they are world-wide and already cached), and the client now guards its initial-sync request so it only fires when the cache is actually empty.
 - Fixed anchor browser not scrolling: rows that overflow the panel height are now reachable via mouse-wheel scroll; rendering and click-testing are clamped to the visible panel area.
 - Clarified the public BlueMap integration description.
