@@ -3,6 +3,7 @@ package tech.endorsed.signport.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.KeyMapping;
@@ -39,22 +40,32 @@ public class SignPortClient implements ClientModInitializer {
             initialSyncRequested = false;
         });
 
-        ClientTickEvents.END_CLIENT_TICK.register(SignPortClient::tick);
-        SignPort.LOGGER.info("[SignPort] Client foundation initialized (networking only; keybinds/HUD/browser deferred).");
-    }
-
-    private static KeyMapping registerKeyBinding(KeyMapping keyMapping) {
-        try {
-            Class<?> helper = Class.forName("net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper");
-            return (KeyMapping) helper.getMethod("registerKeyBinding", KeyMapping.class).invoke(null, keyMapping);
-        } catch (ReflectiveOperationException exception) {
-            SignPort.LOGGER.warn("[SignPort] Could not register config keybind; Fabric key binding API is unavailable.", exception);
-            return keyMapping;
+        configKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+                "key.signport.config",
+                InputConstants.UNKNOWN.getValue(),
+                SIGNPORT_CATEGORY));
+        if (SignPortClientConfig.get().browserKeybindEnabled) {
+            browserKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+                    "key.signport.browser",
+                    InputConstants.KEY_J,
+                    SIGNPORT_CATEGORY));
         }
+
+        ClientTickEvents.END_CLIENT_TICK.register(SignPortClient::tick);
+        SignPort.LOGGER.info("[SignPort] Client initialized.");
     }
 
     private static void tick(Minecraft client) {
         requestInitialSyncWhenReady(client);
+        while (configKey.consumeClick()) {
+            openConfigScreen(client);
+        }
+        if (browserKey != null) {
+            while (browserKey.consumeClick()) {
+                openAnchorBrowser(client);
+            }
+        }
+        PortSignHudHint.tick(client);
     }
 
     private static void requestInitialSyncWhenReady(Minecraft client) {
