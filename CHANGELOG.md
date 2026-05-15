@@ -8,7 +8,6 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 - Fixed redundant full anchor sync on dimension change: the server no longer re-sends all anchors when the player changes dimensions (they are world-wide and already cached), and the client now guards its initial-sync request so it only fires when the cache is actually empty.
 - Fixed anchor browser not scrolling: rows that overflow the panel height are now reachable via mouse-wheel scroll; rendering and click-testing are clamped to the visible panel area.
-
 - Clarified the public BlueMap integration description.
 - Documented server and client config settings in the README and listing descriptions.
 - Re-enabled the sign-editor autocomplete/template mixin and rerouted its inherited `Screen` calls through an explicit `@Invoker` accessor so the mixin no longer fails to apply during multiplayer login on MC 26.1.2.
