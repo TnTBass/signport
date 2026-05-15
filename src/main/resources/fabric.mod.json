@@ -20,6 +20,9 @@
 		],
 		"client": [
 			"tech.endorsed.signport.client.SignPortClient"
+		],
+		"modmenu": [
+			"tech.endorsed.signport.client.config.SignPortModMenuApi"
 		]
 	},
 	"mixins": [
@@ -33,6 +36,8 @@
 		"fabric-permissions-api-v0": "*"
 	},
 	"recommends": {
-		"bluemap": ">=5"
+		"bluemap": ">=5",
+		"cloth-config": ">=26.1.154",
+		"modmenu": ">=18.0.0-alpha.8"
 	}
 }

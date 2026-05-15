@@ -24,6 +24,7 @@ class ClientLoadSafetyTest {
         Map<String, List<String>> expected = new LinkedHashMap<>();
         expected.put("main", List.of("tech.endorsed.signport.SignPort"));
         expected.put("client", List.of("tech.endorsed.signport.client.SignPortClient"));
+        expected.put("modmenu", List.of("tech.endorsed.signport.client.config.SignPortModMenuApi"));
 
         assertEquals(expected, parseEntrypoints(metadata),
                 "fabric.mod.json entrypoints drift; update this test only when intentionally changing the loaded entrypoint set.");
