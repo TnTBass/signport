@@ -256,6 +256,7 @@ public class AnchorState extends SavedData {
 
         record LegacyEntry(String relativePath, ResourceKey<Level> dimension) {}
         List<LegacyEntry> candidates = List.of(
+                new LegacyEntry("data/signport.dat", Level.OVERWORLD),
                 new LegacyEntry("DIM-1/data/signport.dat", Level.NETHER),
                 new LegacyEntry("DIM1/data/signport.dat", Level.END));
 

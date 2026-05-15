@@ -13,6 +13,7 @@ This project uses SemVer-style mod versions. Release entries should include the 
 - Re-enabled the in-game client UX: configurable settings keybind, anchor browser keybind (default `J`), portal-sign HUD lookup hint, and the anchor browser screen. Switched keybind registration from a reflective lookup of the obsolete `KeyBindingHelper` to a direct call to `KeyMappingHelper.registerKeyMapping`, which is the renamed Fabric API package in MC 26.1.2.
 - Re-registered the ModMenu entrypoint so the SignPort settings screen appears in the ModMenu list when ModMenu and Cloth Config are installed, and added Cloth Config and ModMenu to `recommends` in `fabric.mod.json` so launcher metadata advertises the optional integration.
 - Replaced the placeholder mod icon with the SignPort Modrinth artwork, set the `authors`, `homepage`, `sources`, and `issues` metadata to the real values (`TnTBass` and the `TnTBass/signport` GitHub repo), so the ModMenu detail panel shows the correct icon, links, and authorship.
+- Fixed server-side overworld anchors not loading after upgrading from pre-MC-26.1.2 worlds. The MC 26.1.2 world format moved overworld data to `dimensions/minecraft/overworld/data/`; the one-time legacy migration that handled nether and end per-dimension files now also migrates the old flat `data/signport.dat` overworld file into the new global anchor store.
 
 ## 2.0.2+mc26.1.2 - 2026-05-14
 
