@@ -144,7 +144,9 @@ public final class AnchorBrowserScreen extends Screen {
         for (RowHit row : rowHits) {
             if (row.contains(mouseX, mouseY)) {
                 if (showRawTeleportButton() && row.teleportContains(mouseX, mouseY)) {
-                    sendCommand("tp @s %d %d %d".formatted(row.anchor().pos().getX(), row.anchor().pos().getY(), row.anchor().pos().getZ()));
+                    sendCommand("execute in %s run tp @s %d %d %d".formatted(
+                            row.anchor().dimension().identifier(),
+                            row.anchor().pos().getX(), row.anchor().pos().getY(), row.anchor().pos().getZ()));
                 } else {
                     sendCommand("sp tp " + row.anchor().name());
                 }

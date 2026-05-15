@@ -254,11 +254,13 @@ public class AnchorState extends SavedData {
         if (state.legacyFilesChecked) return;
         state.legacyFilesChecked = true;
 
-        record LegacyEntry(String relativePath, ResourceKey<Level> dimension) {}
+        // cleanupParents: true for DIM-N paths whose parent dirs can be pruned when empty;
+        // false for paths whose parents (e.g. data/) are shared and must never be deleted.
+        record LegacyEntry(String relativePath, ResourceKey<Level> dimension, boolean cleanupParents) {}
         List<LegacyEntry> candidates = List.of(
-                new LegacyEntry("data/signport.dat", Level.OVERWORLD),
-                new LegacyEntry("DIM-1/data/signport.dat", Level.NETHER),
-                new LegacyEntry("DIM1/data/signport.dat", Level.END));
+                new LegacyEntry("data/signport.dat", Level.OVERWORLD, false),
+                new LegacyEntry("DIM-1/data/signport.dat", Level.NETHER, true),
+                new LegacyEntry("DIM1/data/signport.dat", Level.END, true));
 
         Path worldRoot = server.getWorldPath(LevelResource.ROOT);
         boolean anyMigrated = false;
@@ -276,22 +278,30 @@ public class AnchorState extends SavedData {
                                 .parse(NbtOps.INSTANCE, dataTag)
                                 .result();
 
+                if (anchorsOpt.isEmpty()) {
+                    SignPort.LOGGER.error("[Signport] Could not parse legacy anchor data from {}; file left in place.",
+                            legacyFile);
+                    continue;
+                }
+
                 int count = 0;
-                if (anchorsOpt.isPresent()) {
-                    for (var kv : anchorsOpt.get().entrySet()) {
+                for (var kv : anchorsOpt.get().entrySet()) {
+                    if (state.findAnchor(kv.getKey(), entry.dimension()).isEmpty()) {
                         state.anchors.add(new Anchor(kv.getKey(), kv.getValue(), entry.dimension()));
                         count++;
                     }
-                    if (count > 0) {
-                        state.setDirty();
-                    }
+                }
+                if (count > 0) {
+                    state.setDirty();
                 }
 
-                // Remove the legacy file and clean up its parent directories
-                // if they are now empty (best-effort; non-empty dirs are left alone).
+                // Remove the legacy file only after a successful parse. For DIM-N paths,
+                // also prune the now-empty parent directories (best-effort).
                 Files.delete(legacyFile);
-                tryDeleteIfEmpty(legacyFile.getParent());             // e.g. DIM-1/data
-                tryDeleteIfEmpty(legacyFile.getParent().getParent()); // e.g. DIM-1
+                if (entry.cleanupParents()) {
+                    tryDeleteIfEmpty(legacyFile.getParent());             // e.g. DIM-1/data
+                    tryDeleteIfEmpty(legacyFile.getParent().getParent()); // e.g. DIM-1
+                }
 
                 SignPort.LOGGER.info("[Signport] Migrated {} anchor(s) from legacy path: {}",
                         count, legacyFile);
