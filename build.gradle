@@ -54,9 +54,9 @@ dependencies {
 	include(implementation("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}"))
 	compileOnly "de.bluecolored:bluemap-api:2.7.6"
 	compileOnly "me.shedaniel.cloth:cloth-config-fabric:26.1.154"
-	compileOnly "maven.modrinth:modmenu:18.0.0-alpha.8"
+	compileOnly "maven.modrinth:modmenu:19.0.0-alpha.1"
 	clientCompileOnly "me.shedaniel.cloth:cloth-config-fabric:26.1.154"
-	clientCompileOnly "maven.modrinth:modmenu:18.0.0-alpha.8"
+	clientCompileOnly "maven.modrinth:modmenu:19.0.0-alpha.1"
 
 	testImplementation "org.junit.jupiter:junit-jupiter:6.0.3"
 	testRuntimeOnly "org.junit.platform:junit-platform-launcher"
