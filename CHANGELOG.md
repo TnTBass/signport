@@ -8,16 +8,13 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## 2.1.0+mc26.1.2 - 2026-05-14
 
-- Fixed redundant full anchor sync on dimension change: the server no longer re-sends all anchors when the player changes dimensions (they are world-wide and already cached), and the client now guards its initial-sync request so it only fires when the cache is actually empty.
-- Fixed anchor browser not scrolling: rows that overflow the panel height are now reachable via mouse-wheel scroll; rendering and click-testing are clamped to the visible panel area.
-- Clarified the public BlueMap integration description.
-- Documented server and client config settings in the README and listing descriptions.
-- Re-enabled the sign-editor autocomplete/template mixin and rerouted its inherited `Screen` calls through an explicit `@Invoker` accessor so the mixin no longer fails to apply during multiplayer login on MC 26.1.2.
-- Re-enabled the SignPort client entrypoint with networking only: payload registration, full/delta receivers, disconnect cleanup, and the ready-handshake tick. Removed the `EnvType.SERVER` early-return that was preventing singleplayer/integrated-server hooks from registering. Keybinds, HUD hint, anchor browser, and ModMenu remain intentionally disabled until later iterations.
-- Re-enabled the in-game client UX: configurable settings keybind, anchor browser keybind (default `J`), portal-sign HUD lookup hint, and the anchor browser screen. Switched keybind registration from a reflective lookup of the obsolete `KeyBindingHelper` to a direct call to `KeyMappingHelper.registerKeyMapping`, which is the renamed Fabric API package in MC 26.1.2.
-- Re-registered the ModMenu entrypoint so the SignPort settings screen appears in the ModMenu list when ModMenu and Cloth Config are installed, and added Cloth Config and ModMenu to `recommends` in `fabric.mod.json` so launcher metadata advertises the optional integration.
-- Replaced the placeholder mod icon with the SignPort Modrinth artwork, set the `authors`, `homepage`, `sources`, and `issues` metadata to the real values (`TnTBass` and the `TnTBass/signport` GitHub repo), so the ModMenu detail panel shows the correct icon, links, and authorship.
-- Fixed server-side overworld anchors not loading after upgrading from pre-MC-26.1.2 worlds. The MC 26.1.2 world format moved overworld data to `dimensions/minecraft/overworld/data/`; the one-time legacy migration that handled nether and end per-dimension files now also migrates the old flat `data/signport.dat` overworld file into the new global anchor store.
+- Restored the optional client-side SignPort UX on MC 26.1.2: synced anchor data, portal-sign HUD hints, the anchor browser, sign-editor autocomplete, the SignPort Template form, and the ModMenu/Cloth Config settings entry.
+- Added mouse-wheel scrolling to the anchor browser and clamped rendering/clicks to the visible list area.
+- Fixed multiplayer client crashes caused by the MC 26.1.2 client entrypoint, keybind, and sign-editor mixin changes.
+- Fixed redundant full anchor syncs when players change dimensions.
+- Fixed raw coordinate teleports using the wrong dimension context.
+- Fixed legacy overworld anchors not loading after upgrading pre-MC-26.1.2 worlds.
+- Updated the mod icon, authorship, project links, optional dependency metadata, README, listing descriptions, and BlueMap integration docs.
 
 ## 2.0.2+mc26.1.2 - 2026-05-14
 
