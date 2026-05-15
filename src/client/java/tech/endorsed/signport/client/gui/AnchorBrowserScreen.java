@@ -94,6 +94,7 @@ public final class AnchorBrowserScreen extends Screen {
 
         int contentTop = top + 88;
         int contentBottom = top + panelHeight();
+        graphics.enableScissor(left, contentTop, left + PANEL_WIDTH, contentBottom);
         for (GroupHit group : groupHits) {
             if (group.y() + GROUP_HEIGHT <= contentTop || group.y() >= contentBottom) continue;
             boolean collapsed = isCollapsed(group.key());
@@ -114,6 +115,7 @@ public final class AnchorBrowserScreen extends Screen {
                 graphics.centeredText(this.font, Component.literal("teleport"), row.teleportX() + 29, row.y() + 6, 0xFFFFFFFF);
             }
         }
+        graphics.disableScissor();
     }
 
     private void drawTabs(GuiGraphicsExtractor graphics, int left, int y) {
@@ -141,26 +143,28 @@ public final class AnchorBrowserScreen extends Screen {
         }
         int contentTop = top() + 88;
         int contentBottom = top() + panelHeight();
-        for (GroupHit group : groupHits) {
-            if (group.y() + GROUP_HEIGHT <= contentTop || group.y() >= contentBottom) continue;
-            if (group.contains(mouseX, mouseY)) {
-                COLLAPSED_GROUPS.put(group.key(), !isCollapsed(group.key()));
-                rebuildRows();
-                return true;
-            }
-        }
-        for (RowHit row : rowHits) {
-            if (row.y() + ROW_HEIGHT <= contentTop || row.y() >= contentBottom) continue;
-            if (row.contains(mouseX, mouseY)) {
-                if (showRawTeleportButton() && row.teleportContains(mouseX, mouseY)) {
-                    sendCommand("execute in %s run tp @s %d %d %d".formatted(
-                            row.anchor().dimension().identifier(),
-                            row.anchor().pos().getX(), row.anchor().pos().getY(), row.anchor().pos().getZ()));
-                } else {
-                    sendCommand("sp tp " + row.anchor().name());
+        if (mouseY >= contentTop && mouseY < contentBottom) {
+            for (GroupHit group : groupHits) {
+                if (group.y() + GROUP_HEIGHT <= contentTop || group.y() >= contentBottom) continue;
+                if (group.contains(mouseX, mouseY)) {
+                    COLLAPSED_GROUPS.put(group.key(), !isCollapsed(group.key()));
+                    rebuildRows();
+                    return true;
                 }
-                onClose();
-                return true;
+            }
+            for (RowHit row : rowHits) {
+                if (row.y() + ROW_HEIGHT <= contentTop || row.y() >= contentBottom) continue;
+                if (row.contains(mouseX, mouseY)) {
+                    if (showRawTeleportButton() && row.teleportContains(mouseX, mouseY)) {
+                        sendCommand("execute in %s run tp @s %d %d %d".formatted(
+                                row.anchor().dimension().identifier(),
+                                row.anchor().pos().getX(), row.anchor().pos().getY(), row.anchor().pos().getZ()));
+                    } else {
+                        sendCommand("sp tp " + row.anchor().name());
+                    }
+                    onClose();
+                    return true;
+                }
             }
         }
         return super.mouseClicked(event, doubleClick);
@@ -168,7 +172,11 @@ public final class AnchorBrowserScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        scrollOffset = Math.max(0, Math.min(maxScroll(), scrollOffset + (int) (-scrollY * ROW_HEIGHT)));
+        int newOffset = Math.max(0, Math.min(maxScroll(), scrollOffset + (int) (-scrollY * ROW_HEIGHT)));
+        if (newOffset != scrollOffset) {
+            scrollOffset = newOffset;
+            rebuildRows();
+        }
         return true;
     }
 
@@ -209,6 +217,13 @@ public final class AnchorBrowserScreen extends Screen {
             grouped.computeIfAbsent(groupKey(anchor), ignored -> new ArrayList<>()).add(anchor);
         }
 
+        int contentHeight = grouped.entrySet().stream()
+                .mapToInt(e -> GROUP_HEIGHT + (isCollapsed(e.getKey()) ? 0 : e.getValue().size() * ROW_HEIGHT))
+                .sum();
+        int nextPanelHeight = Math.max(170, Math.min(this.height - 48, 112 + contentHeight));
+        int newMaxScroll = Math.max(0, contentHeight - (nextPanelHeight - 88));
+        scrollOffset = Math.max(0, Math.min(newMaxScroll, scrollOffset));
+
         int y = top() + 88 - scrollOffset;
         List<GroupHit> groups = new ArrayList<>();
         List<RowHit> rows = new ArrayList<>();
@@ -224,7 +239,6 @@ public final class AnchorBrowserScreen extends Screen {
         }
         groupHits = groups;
         rowHits = rows;
-        scrollOffset = Math.min(scrollOffset, maxScroll());
     }
 
     private Comparator<AnchorClient> comparator() {
