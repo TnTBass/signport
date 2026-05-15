@@ -6,6 +6,8 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
+- Added a manual workflow for updating already-published Modrinth and CurseForge release changelogs from `CHANGELOG.md`.
+
 ## 2.1.0+mc26.1.2 - 2026-05-14
 
 - Restored the optional client-side SignPort UX on MC 26.1.2: synced anchor data, portal-sign HUD hints, the anchor browser, sign-editor autocomplete, the SignPort Template form, and the ModMenu/Cloth Config settings entry.

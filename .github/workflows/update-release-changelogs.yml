@@ -1,0 +1,43 @@
+name: update release changelogs
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number to read from CHANGELOG.md, without leading v'
+        required: true
+        type: string
+      modrinth_version_id:
+        description: 'Modrinth version ID to update'
+        required: false
+        type: string
+      curseforge_file_id:
+        description: 'CurseForge file ID to update'
+        required: false
+        type: string
+      changelog_path:
+        description: 'Optional repo-relative notes file; defaults to extracting from CHANGELOG.md'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  update-release-changelogs:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - name: update platform changelogs
+        shell: pwsh
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+          CURSEFORGE_PROJECT_ID: ${{ secrets.CURSEFORGE_PROJECT_ID }}
+        run: |
+          ./scripts/update-release-changelogs.ps1 `
+            -Version "${{ inputs.version }}" `
+            -ModrinthVersionId "${{ inputs.modrinth_version_id }}" `
+            -CurseForgeFileId "${{ inputs.curseforge_file_id }}" `
+            -ChangelogPath "${{ inputs.changelog_path }}"
