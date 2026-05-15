@@ -76,7 +76,9 @@ public class SignPortClient implements ClientModInitializer {
         }
         if (AnchorSyncPayloads.shouldRequestInitialSync(playerPresent, canSendReady, initialSyncRequested)) {
             initialSyncRequested = true;
-            ClientPlayNetworking.send(new AnchorSyncPayloads.Ready());
+            if (SignPortClientState.anchors().isEmpty()) {
+                ClientPlayNetworking.send(new AnchorSyncPayloads.Ready());
+            }
         }
     }
 

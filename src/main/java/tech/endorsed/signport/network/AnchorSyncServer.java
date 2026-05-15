@@ -1,6 +1,5 @@
 package tech.endorsed.signport.network;
 
-import net.fabricmc.fabric.api.entity.event.v1.ServerEntityLevelChangeEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.resources.ResourceKey;
@@ -25,8 +24,6 @@ public final class AnchorSyncServer {
                 context.server().execute(() -> sendFull(context.player())));
         ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) ->
                 sendFull(newPlayer));
-        ServerEntityLevelChangeEvents.AFTER_PLAYER_CHANGE_LEVEL.register((player, origin, destination) ->
-                sendFull(player));
     }
 
     public static void sendFull(ServerPlayer player) {
