@@ -5,11 +5,13 @@
 	"name": "SignPort",
 	"description": "A sign portal mod for quick travel between named anchors.",
 	"authors": [
+		"TnTBass",
 		"approved"
 	],
 	"contact": {
-		"homepage": "https://github.com/approved",
-		"sources": "https://github.com/TnTBass/signport"
+		"homepage": "https://github.com/TnTBass/signport",
+		"sources": "https://github.com/TnTBass/signport",
+		"issues": "https://github.com/TnTBass/signport/issues"
 	},
 	"license": "LGPLv3",
 	"icon": "assets/signport/icon.png",
