@@ -28,9 +28,10 @@ public final class PortSignFormat {
 		// "the_nether", "the_end", and "overworld" already work via the
 		// default minecraft: namespace, but "nether" and "end" do not.
 		return switch (line.toLowerCase(Locale.ROOT)) {
-			case "nether" -> Identifier.fromNamespaceAndPath("minecraft", "the_nether");
-			case "end"    -> Identifier.fromNamespaceAndPath("minecraft", "the_end");
-			default       -> Identifier.tryParse(line); // preserve case for custom dimensions
+			case "nether"    -> Identifier.fromNamespaceAndPath("minecraft", "the_nether");
+			case "end"       -> Identifier.fromNamespaceAndPath("minecraft", "the_end");
+			case "overworld" -> Identifier.fromNamespaceAndPath("minecraft", "overworld");
+			default          -> Identifier.tryParse(line); // preserve case for custom dimensions
 		};
 	}
 }

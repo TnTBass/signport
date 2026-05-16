@@ -55,6 +55,7 @@ public abstract class AbstractSignEditScreenMixin {
 
     private List<AnchorClient> signportSuggestions = List.of();
     private int signportSelectedSuggestion = 0;
+    private int signportScrollOffset = 0;
     private boolean signportDismissed = false;
     private int signportPopupX;
     private int signportPopupY;
@@ -68,6 +69,7 @@ public abstract class AbstractSignEditScreenMixin {
     private boolean signportTemplateDimensionOpen = false;
     private List<AnchorClient> signportTemplateSuggestions = List.of();
     private int signportTemplateSelectedSuggestion = 0;
+    private int signportTemplateScrollOffset = 0;
     private List<DimensionOption> signportTemplateDimensionOptions = List.of(DimensionOption.DEFAULT);
     private int signportTemplateSelectedDimension = 0;
     private int signportTemplateLeft;
@@ -116,10 +118,20 @@ public abstract class AbstractSignEditScreenMixin {
         switch (event.key()) {
             case 264 -> {
                 signportSelectedSuggestion = (signportSelectedSuggestion + 1) % signportSuggestions.size();
+                if (signportSelectedSuggestion == 0) {
+                    signportScrollOffset = 0;
+                } else if (signportSelectedSuggestion >= signportScrollOffset + MAX_SUGGESTIONS) {
+                    signportScrollOffset = signportSelectedSuggestion - MAX_SUGGESTIONS + 1;
+                }
                 cir.setReturnValue(true);
             }
             case 265 -> {
                 signportSelectedSuggestion = (signportSelectedSuggestion + signportSuggestions.size() - 1) % signportSuggestions.size();
+                if (signportSelectedSuggestion == signportSuggestions.size() - 1) {
+                    signportScrollOffset = Math.max(0, signportSuggestions.size() - MAX_SUGGESTIONS);
+                } else if (signportSelectedSuggestion < signportScrollOffset) {
+                    signportScrollOffset = signportSelectedSuggestion;
+                }
                 cir.setReturnValue(true);
             }
             case 258, 257 -> {
@@ -171,19 +183,21 @@ public abstract class AbstractSignEditScreenMixin {
 
         int width = graphics.guiWidth();
         int height = graphics.guiHeight();
+        int visibleCount = Math.min(MAX_SUGGESTIONS, signportSuggestions.size());
         signportPopupX = Math.max(12, Math.min(width - SUGGESTION_WIDTH - 12, width / 2 - SUGGESTION_WIDTH / 2));
-        signportPopupY = Math.min(height - 20 - signportSuggestions.size() * SUGGESTION_ROW_HEIGHT, height / 2 + 56);
+        signportPopupY = Math.min(height - 20 - visibleCount * SUGGESTION_ROW_HEIGHT, height / 2 + 56);
 
         graphics.nextStratum();
         graphics.fill(signportPopupX - 2, signportPopupY - 2, signportPopupX + SUGGESTION_WIDTH + 2,
-                signportPopupY + signportSuggestions.size() * SUGGESTION_ROW_HEIGHT + 2, 0xDD101010);
+                signportPopupY + visibleCount * SUGGESTION_ROW_HEIGHT + 2, 0xDD101010);
         graphics.outline(signportPopupX - 2, signportPopupY - 2, SUGGESTION_WIDTH + 4,
-                signportSuggestions.size() * SUGGESTION_ROW_HEIGHT + 4, 0xFF6F8CAF);
+                visibleCount * SUGGESTION_ROW_HEIGHT + 4, 0xFF6F8CAF);
 
-        for (int i = 0; i < signportSuggestions.size(); i++) {
-            AnchorClient anchor = signportSuggestions.get(i);
+        for (int i = 0; i < visibleCount; i++) {
+            int idx = signportScrollOffset + i;
+            AnchorClient anchor = signportSuggestions.get(idx);
             int y = signportPopupY + i * SUGGESTION_ROW_HEIGHT;
-            if (i == signportSelectedSuggestion) {
+            if (idx == signportSelectedSuggestion) {
                 graphics.fill(signportPopupX, y, signportPopupX + SUGGESTION_WIDTH, y + SUGGESTION_ROW_HEIGHT, 0xFF31465E);
             }
             graphics.text(net.minecraft.client.Minecraft.getInstance().font, suggestionLabel(anchor), signportPopupX + 4, y + 3, 0xFFFFFFFF);
@@ -199,8 +213,10 @@ public abstract class AbstractSignEditScreenMixin {
 
         double mouseX = event.x();
         double mouseY = event.y();
-        if (mouseX < signportPopupX || mouseX >= signportPopupX + SUGGESTION_WIDTH || mouseY < signportPopupY) return false;
-        int index = (int) ((mouseY - signportPopupY) / SUGGESTION_ROW_HEIGHT);
+        int visibleCount = Math.min(MAX_SUGGESTIONS, signportSuggestions.size());
+        if (mouseX < signportPopupX || mouseX >= signportPopupX + SUGGESTION_WIDTH || mouseY < signportPopupY
+                || mouseY >= signportPopupY + visibleCount * SUGGESTION_ROW_HEIGHT) return false;
+        int index = (int) ((mouseY - signportPopupY) / SUGGESTION_ROW_HEIGHT) + signportScrollOffset;
         if (index >= 0 && index < signportSuggestions.size()) {
             acceptSuggestion(signportSuggestions.get(index));
             return true;
@@ -213,6 +229,7 @@ public abstract class AbstractSignEditScreenMixin {
                 || signportTemplateOpen || signportDismissed || line != 2 || !PortSignFormat.isPortalMarker(messages[1])) {
             signportSuggestions = List.of();
             signportSelectedSuggestion = 0;
+            signportScrollOffset = 0;
             return;
         }
 
@@ -225,17 +242,26 @@ public abstract class AbstractSignEditScreenMixin {
                 .filter(anchor -> dimension == null || anchor.dimension().equals(dimension))
                 .filter(anchor -> needle.isBlank() || anchor.name().toLowerCase(Locale.ROOT).contains(needle))
                 .sorted(suggestionComparator(needle))
-                .limit(MAX_SUGGESTIONS)
                 .toList();
         if (signportSelectedSuggestion >= signportSuggestions.size()) {
             signportSelectedSuggestion = 0;
+            signportScrollOffset = 0;
         }
+        signportScrollOffset = Math.max(0, Math.min(signportScrollOffset, Math.max(0, signportSuggestions.size() - MAX_SUGGESTIONS)));
     }
 
     private Comparator<AnchorClient> suggestionComparator(String needle) {
         return Comparator
                 .comparing((AnchorClient anchor) -> !anchor.name().toLowerCase(Locale.ROOT).startsWith(needle))
                 .thenComparing(AnchorClient::name, String.CASE_INSENSITIVE_ORDER);
+    }
+
+    private String dimensionShortName(ResourceKey<Level> dimension) {
+        Identifier id = dimension.identifier();
+        if (id.equals(Identifier.fromNamespaceAndPath("minecraft", "overworld"))) return "overworld";
+        if (id.equals(Identifier.fromNamespaceAndPath("minecraft", "the_nether"))) return "nether";
+        if (id.equals(Identifier.fromNamespaceAndPath("minecraft", "the_end"))) return "end";
+        return id.toString();
     }
 
     private String suggestionLabel(AnchorClient anchor) {
@@ -246,6 +272,16 @@ public abstract class AbstractSignEditScreenMixin {
 
     private void acceptSuggestion(AnchorClient anchor) {
         signportSetMessage(anchor.name());
+        // Also fill in the dimension on line 3 when not already specified
+        if (PortSignFormat.parseDimensionId(messages[3]) == null) {
+            int savedLine = line;
+            try {
+                line = 3;
+                signportSetMessage(dimensionShortName(anchor.dimension()));
+            } finally {
+                line = savedLine;
+            }
+        }
         signportDismissed = true;
         signportSuggestions = List.of();
     }
@@ -337,11 +373,21 @@ public abstract class AbstractSignEditScreenMixin {
         switch (event.key()) {
             case 264 -> {
                 signportTemplateSelectedSuggestion = (signportTemplateSelectedSuggestion + 1) % signportTemplateSuggestions.size();
+                if (signportTemplateSelectedSuggestion == 0) {
+                    signportTemplateScrollOffset = 0;
+                } else if (signportTemplateSelectedSuggestion >= signportTemplateScrollOffset + MAX_TEMPLATE_SUGGESTIONS) {
+                    signportTemplateScrollOffset = signportTemplateSelectedSuggestion - MAX_TEMPLATE_SUGGESTIONS + 1;
+                }
                 return true;
             }
             case 265 -> {
                 signportTemplateSelectedSuggestion = (signportTemplateSelectedSuggestion + signportTemplateSuggestions.size() - 1)
                         % signportTemplateSuggestions.size();
+                if (signportTemplateSelectedSuggestion == signportTemplateSuggestions.size() - 1) {
+                    signportTemplateScrollOffset = Math.max(0, signportTemplateSuggestions.size() - MAX_TEMPLATE_SUGGESTIONS);
+                } else if (signportTemplateSelectedSuggestion < signportTemplateScrollOffset) {
+                    signportTemplateScrollOffset = signportTemplateSelectedSuggestion;
+                }
                 return true;
             }
             case 258, 257 -> {
@@ -357,10 +403,11 @@ public abstract class AbstractSignEditScreenMixin {
     private boolean handleTemplateMouseClick(MouseButtonEvent event) {
         double mouseX = event.x();
         double mouseY = event.y();
+        int visibleTemplateCount = Math.min(MAX_TEMPLATE_SUGGESTIONS, signportTemplateSuggestions.size());
         if (mouseX >= signportTemplateSuggestionX && mouseX < signportTemplateSuggestionX + SUGGESTION_WIDTH
                 && mouseY >= signportTemplateSuggestionY
-                && mouseY < signportTemplateSuggestionY + signportTemplateSuggestions.size() * SUGGESTION_ROW_HEIGHT) {
-            int index = (int) ((mouseY - signportTemplateSuggestionY) / SUGGESTION_ROW_HEIGHT);
+                && mouseY < signportTemplateSuggestionY + visibleTemplateCount * SUGGESTION_ROW_HEIGHT) {
+            int index = (int) ((mouseY - signportTemplateSuggestionY) / SUGGESTION_ROW_HEIGHT) + signportTemplateScrollOffset;
             if (index >= 0 && index < signportTemplateSuggestions.size()) {
                 acceptTemplateSuggestion(signportTemplateSuggestions.get(index));
                 return true;
@@ -386,17 +433,20 @@ public abstract class AbstractSignEditScreenMixin {
         if (!signportTemplateOpen || SignPortClientState.anchors().isEmpty()) {
             signportTemplateSuggestions = List.of();
             signportTemplateSelectedSuggestion = 0;
+            signportTemplateScrollOffset = 0;
             return;
         }
         String needle = signportTemplateTargetField.getValue().toLowerCase(Locale.ROOT);
         signportTemplateSuggestions = SignPortClientState.anchors().stream()
                 .filter(anchor -> needle.isBlank() || anchor.name().toLowerCase(Locale.ROOT).contains(needle))
                 .sorted(suggestionComparator(needle))
-                .limit(MAX_TEMPLATE_SUGGESTIONS)
                 .toList();
         if (signportTemplateSelectedSuggestion >= signportTemplateSuggestions.size()) {
             signportTemplateSelectedSuggestion = 0;
+            signportTemplateScrollOffset = 0;
         }
+        signportTemplateScrollOffset = Math.max(0, Math.min(signportTemplateScrollOffset,
+                Math.max(0, signportTemplateSuggestions.size() - MAX_TEMPLATE_SUGGESTIONS)));
         signportTemplateApplyButton.active = !PortSignFormat.normalizeLine(signportTemplateTargetField.getValue()).isBlank();
     }
 
@@ -476,18 +526,20 @@ public abstract class AbstractSignEditScreenMixin {
     private void renderTemplateSuggestionPopup(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         if (signportTemplateSuggestions.isEmpty() || !signportTemplateTargetField.isFocused()) return;
 
+        int visibleTemplateCount = Math.min(MAX_TEMPLATE_SUGGESTIONS, signportTemplateSuggestions.size());
         signportTemplateSuggestionX = signportTemplateTargetField.getX();
         signportTemplateSuggestionY = signportTemplateTargetField.getY() + signportTemplateTargetField.getHeight() + 2;
         graphics.fill(signportTemplateSuggestionX - 2, signportTemplateSuggestionY - 2,
                 signportTemplateSuggestionX + SUGGESTION_WIDTH + 2,
-                signportTemplateSuggestionY + signportTemplateSuggestions.size() * SUGGESTION_ROW_HEIGHT + 2,
+                signportTemplateSuggestionY + visibleTemplateCount * SUGGESTION_ROW_HEIGHT + 2,
                 0xF0101010);
         graphics.outline(signportTemplateSuggestionX - 2, signportTemplateSuggestionY - 2, SUGGESTION_WIDTH + 4,
-                signportTemplateSuggestions.size() * SUGGESTION_ROW_HEIGHT + 4, 0xFF6F8CAF);
-        for (int i = 0; i < signportTemplateSuggestions.size(); i++) {
-            AnchorClient anchor = signportTemplateSuggestions.get(i);
+                visibleTemplateCount * SUGGESTION_ROW_HEIGHT + 4, 0xFF6F8CAF);
+        for (int i = 0; i < visibleTemplateCount; i++) {
+            int idx = signportTemplateScrollOffset + i;
+            AnchorClient anchor = signportTemplateSuggestions.get(idx);
             int y = signportTemplateSuggestionY + i * SUGGESTION_ROW_HEIGHT;
-            if (i == signportTemplateSelectedSuggestion || (mouseX >= signportTemplateSuggestionX
+            if (idx == signportTemplateSelectedSuggestion || (mouseX >= signportTemplateSuggestionX
                     && mouseX < signportTemplateSuggestionX + SUGGESTION_WIDTH
                     && mouseY >= y && mouseY < y + SUGGESTION_ROW_HEIGHT)) {
                 graphics.fill(signportTemplateSuggestionX, y, signportTemplateSuggestionX + SUGGESTION_WIDTH,
@@ -585,10 +637,11 @@ public abstract class AbstractSignEditScreenMixin {
         @Override
         public boolean isMouseOver(double mouseX, double mouseY) {
             if (signportTemplateOpen) {
+                int visibleTemplateCount = Math.min(MAX_TEMPLATE_SUGGESTIONS, signportTemplateSuggestions.size());
                 return (mouseX >= signportTemplateSuggestionX
                         && mouseX < signportTemplateSuggestionX + SUGGESTION_WIDTH
                         && mouseY >= signportTemplateSuggestionY
-                        && mouseY < signportTemplateSuggestionY + signportTemplateSuggestions.size() * SUGGESTION_ROW_HEIGHT)
+                        && mouseY < signportTemplateSuggestionY + visibleTemplateCount * SUGGESTION_ROW_HEIGHT)
                         || (signportTemplateDimensionOpen
                         && mouseX >= signportTemplateDimensionX
                         && mouseX < signportTemplateDimensionX + TEMPLATE_FIELD_WIDTH
@@ -596,11 +649,12 @@ public abstract class AbstractSignEditScreenMixin {
                         && mouseY < signportTemplateDimensionY + signportTemplateDimensionOptions.size() * TEMPLATE_ROW_HEIGHT);
             }
             refreshSuggestions();
+            int visibleCount = Math.min(MAX_SUGGESTIONS, signportSuggestions.size());
             return !signportSuggestions.isEmpty()
                     && mouseX >= signportPopupX
                     && mouseX < signportPopupX + SUGGESTION_WIDTH
                     && mouseY >= signportPopupY
-                    && mouseY < signportPopupY + signportSuggestions.size() * SUGGESTION_ROW_HEIGHT;
+                    && mouseY < signportPopupY + visibleCount * SUGGESTION_ROW_HEIGHT;
         }
 
         @Override
