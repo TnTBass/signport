@@ -72,13 +72,13 @@ Name exists in another dimension. Signs may need a dimension line.
 
 The client uses the synced anchor cache for immediate duplicate feedback. The server still performs authoritative validation because the cache may be stale.
 
-The max length for GUI-created anchor names should be slightly shorter than the practical one-line sign limit, by one or two characters. The implementation plan should verify the best constant against the current sign editing behavior and existing SignPort formatting tests before choosing the exact value.
+The max length for GUI-created anchor names should be slightly shorter than the practical one-line sign limit, by one or two characters. The implementation plan should verify the best constant against the current sign editing behavior and existing SignPort formatting tests before choosing the exact value. The chosen value must be extracted as a named constant visible to both the command path and the new network payload codec, not embedded as a magic number in the GUI.
 
 ## Group Suggestions
 
 The group field remains optional free text.
 
-As the player types, the modal suggests existing groups from the synced anchor cache. Suggestions are normalized in the same spirit as command-created groups so players do not accidentally create near-duplicates such as `spawn`, `Spawn`, and `spawns`. Selecting a suggestion fills the group field.
+As the player types, the modal suggests existing groups as-is from the synced anchor cache. Selecting a suggestion fills the group field. Players remain responsible for casing and naming consistency because the current server behavior stores distinct group strings distinctly.
 
 The server still normalizes and stores the submitted group using the same behavior as the command path.
 
@@ -96,9 +96,17 @@ Add a dedicated serverbound payload, conceptually:
 CreateAnchorRequest(name, group)
 ```
 
-The payload contains only the player-entered fields. It does not include position, dimension, permission state, or created timestamp.
+The request payload contains only the player-entered fields. It does not include position, dimension, permission state, or created timestamp.
 
 The server registers the payload alongside the existing serverbound ready handshake. On receipt, it runs on the server thread, gets the sending `ServerPlayer`, checks `SignPortPermissions.canCreateAnchor`, derives the player `BlockPos` and `ResourceKey<Level>`, and routes creation through shared anchor creation logic.
+
+Add a dedicated correlated clientbound response payload, conceptually:
+
+```text
+CreateAnchorResponse(success, errorMessage)
+```
+
+The response payload has at minimum `success: boolean` and `errorMessage: String`. `errorMessage` is empty on success and contains a short user-facing failure reason on rejection. This response is the mechanism the modal uses to learn whether to close or stay open with inline error feedback.
 
 ## Server Behavior
 
@@ -118,6 +126,8 @@ If the current command implementation keeps creation logic embedded in `AnchorCo
 ## Response And Error Handling
 
 The modal enters a pending state after submit. During pending state, the form should prevent double-submit.
+
+The client learns the authoritative outcome from `CreateAnchorResponse`. Chat messages and timeouts are not used for modal control.
 
 On success:
 
@@ -155,13 +165,14 @@ Client-side behavior should be covered where the current test setup allows:
 
 - Name validation color state: green, orange, red.
 - `Create` disabled only for red states.
+- `Create` disabled during pending state to prevent double-submit.
 - Group suggestions come from synced groups.
 - Create request payload omits position and dimension.
+- Client and server produce identical group strings for the same input, catching normalization drift between layers.
 
 Run the full quiet build before implementation completion.
 
 ## Open Implementation Notes
 
 - Verify the exact GUI anchor-name max length against sign editing behavior and existing SignPort formatting tests.
-- Decide whether server rejection feedback needs a new response payload or can be represented through existing chat/system messages plus client-side timeout handling. A direct response payload is likely cleaner because the modal should wait for success before closing.
 - Keep all visual companion artifacts under `.superpowers/`, which is local scratch and ignored by git.
