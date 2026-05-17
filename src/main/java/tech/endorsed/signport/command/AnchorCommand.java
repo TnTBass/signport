@@ -239,9 +239,9 @@ public class AnchorCommand {
         AnchorSyncServer.anchorCreated(source.getServer(), anchor);
 
         if (normalizedGroup.isEmpty()) {
-            player.sendSystemMessage(Component.literal("Created anchor '%s'".formatted(name)));
+            player.sendSystemMessage(Component.literal("Created anchor '%s'".formatted(anchor.name)));
         } else {
-            player.sendSystemMessage(Component.literal("Created anchor '%s' in group '%s'".formatted(name, normalizedGroup)));
+            player.sendSystemMessage(Component.literal("Created anchor '%s' in group '%s'".formatted(anchor.name, normalizedGroup)));
         }
 
         return 1;
@@ -471,8 +471,7 @@ public class AnchorCommand {
     }
 
     private static String normalizeGroup(String group) {
-        if (group == null || group.equals(CLEAR_GROUP_SENTINEL)) return "";
-        return group;
+        return AnchorCreation.normalizeGroup(group);
     }
 
     private static String groupLabel(String group) {
