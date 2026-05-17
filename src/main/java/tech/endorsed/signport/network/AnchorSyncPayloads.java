@@ -11,6 +11,7 @@ import net.minecraft.world.level.Level;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import tech.endorsed.signport.SignPort;
 import tech.endorsed.signport.world.Anchor;
+import tech.endorsed.signport.world.AnchorCreation;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +23,10 @@ public final class AnchorSyncPayloads {
             new CustomPacketPayload.Type<>(id("anchor_sync_delta"));
     public static final CustomPacketPayload.Type<Ready> READY_TYPE =
             new CustomPacketPayload.Type<>(id("anchor_sync_ready"));
+    public static final CustomPacketPayload.Type<CreateAnchorRequest> CREATE_ANCHOR_REQUEST_TYPE =
+            new CustomPacketPayload.Type<>(id("anchor_create_request"));
+    public static final CustomPacketPayload.Type<CreateAnchorResponse> CREATE_ANCHOR_RESPONSE_TYPE =
+            new CustomPacketPayload.Type<>(id("anchor_create_response"));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, Full> FULL_CODEC = StreamCodec.of(
             AnchorSyncPayloads::writeFull,
@@ -33,6 +38,12 @@ public final class AnchorSyncPayloads {
             (buf, payload) -> {
             },
             buf -> new Ready());
+    public static final StreamCodec<RegistryFriendlyByteBuf, CreateAnchorRequest> CREATE_ANCHOR_REQUEST_CODEC = StreamCodec.of(
+            AnchorSyncPayloads::writeCreateAnchorRequest,
+            AnchorSyncPayloads::readCreateAnchorRequest);
+    public static final StreamCodec<RegistryFriendlyByteBuf, CreateAnchorResponse> CREATE_ANCHOR_RESPONSE_CODEC = StreamCodec.of(
+            AnchorSyncPayloads::writeCreateAnchorResponse,
+            AnchorSyncPayloads::readCreateAnchorResponse);
     private static boolean clientboundRegistered = false;
     private static boolean serverboundRegistered = false;
 
@@ -47,12 +58,14 @@ public final class AnchorSyncPayloads {
         if (clientboundRegistered) return;
         PayloadTypeRegistry.clientboundPlay().register(FULL_TYPE, FULL_CODEC);
         PayloadTypeRegistry.clientboundPlay().register(DELTA_TYPE, DELTA_CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(CREATE_ANCHOR_RESPONSE_TYPE, CREATE_ANCHOR_RESPONSE_CODEC);
         clientboundRegistered = true;
     }
 
     public static synchronized void registerServerbound() {
         if (serverboundRegistered) return;
         PayloadTypeRegistry.serverboundPlay().register(READY_TYPE, READY_CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(CREATE_ANCHOR_REQUEST_TYPE, CREATE_ANCHOR_REQUEST_CODEC);
         serverboundRegistered = true;
     }
 
@@ -97,6 +110,28 @@ public final class AnchorSyncPayloads {
         @Override
         public Type<? extends CustomPacketPayload> type() {
             return READY_TYPE;
+        }
+    }
+
+    public record CreateAnchorRequest(String name, String group) implements CustomPacketPayload {
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return CREATE_ANCHOR_REQUEST_TYPE;
+        }
+    }
+
+    public record CreateAnchorResponse(boolean success, String errorMessage) implements CustomPacketPayload {
+        public static CreateAnchorResponse accepted() {
+            return new CreateAnchorResponse(true, "");
+        }
+
+        public static CreateAnchorResponse failure(String errorMessage) {
+            return new CreateAnchorResponse(false, errorMessage == null ? "" : errorMessage);
+        }
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return CREATE_ANCHOR_RESPONSE_TYPE;
         }
     }
 
@@ -159,6 +194,26 @@ public final class AnchorSyncPayloads {
         }
         SyncedAnchor anchor = readAnchor(buf);
         return new Delta(action, anchor, anchor.name(), anchor.dimension());
+    }
+
+    private static void writeCreateAnchorRequest(RegistryFriendlyByteBuf buf, CreateAnchorRequest payload) {
+        buf.writeUtf(payload.name(), AnchorCreation.MAX_ANCHOR_NAME_LENGTH);
+        buf.writeUtf(payload.group() == null ? "" : payload.group());
+    }
+
+    private static CreateAnchorRequest readCreateAnchorRequest(RegistryFriendlyByteBuf buf) {
+        return new CreateAnchorRequest(
+                buf.readUtf(AnchorCreation.MAX_ANCHOR_NAME_LENGTH),
+                buf.readUtf());
+    }
+
+    private static void writeCreateAnchorResponse(RegistryFriendlyByteBuf buf, CreateAnchorResponse payload) {
+        buf.writeBoolean(payload.success());
+        buf.writeUtf(payload.errorMessage() == null ? "" : payload.errorMessage());
+    }
+
+    private static CreateAnchorResponse readCreateAnchorResponse(RegistryFriendlyByteBuf buf) {
+        return new CreateAnchorResponse(buf.readBoolean(), buf.readUtf());
     }
 
     private static void writeAnchor(RegistryFriendlyByteBuf buf, SyncedAnchor anchor) {
