@@ -48,6 +48,7 @@ AGENTS.md
 # local workspace notes and runtime logs
 prompts/
 logs/
+.superpowers/
 CLIENT_CRASH_HANDOFF.md
 CLAUDE_CLIENT_CRASH_REVIEW.md
 COLLAB_WORKFLOW.md
