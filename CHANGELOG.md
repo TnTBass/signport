@@ -6,6 +6,8 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
+- Corrected the Modrinth install metadata so SignPort is shown as required on servers and optional on clients.
+
 ## 2.1.1+mc26.1.2 - 2026-05-16
 
 - Improved sign editor suggestions for servers with many anchors: longer result lists now scroll cleanly, clicking outside the visible list no longer selects hidden entries, and choosing an anchor can fill the destination dimension line for you.

@@ -270,8 +270,10 @@ tasks.register("checkSourceHygiene") {
 		if (!modrinthUploadScript.contains("https://api.modrinth.com/v2/version")
 				|| !modrinthUploadScript.contains("MODRINTH_TOKEN")
 				|| !modrinthUploadScript.contains("api.modrinth.com/v2/project")
-				|| !modrinthUploadScript.contains("modrinth-listing.md")) {
-			throw new GradleException("Modrinth upload script must publish versions and sync the project description from docs/modrinth-listing.md.")
+				|| !modrinthUploadScript.contains("modrinth-listing.md")
+				|| !modrinthUploadScript.contains('client_side = "optional"')
+				|| !modrinthUploadScript.contains('server_side = "required"')) {
+			throw new GradleException("Modrinth upload script must publish versions and sync the project description/client-server metadata from docs/modrinth-listing.md.")
 		}
 		def curseForgeUploadScript = file("scripts/upload-curseforge.ps1").text
 		if (!curseForgeUploadScript.contains('https://minecraft.curseforge.com/api/projects/$ProjectId/upload-file')

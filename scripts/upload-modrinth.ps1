@@ -103,7 +103,11 @@ if (Test-Path -LiteralPath $listingDoc) {
     $descMatch = [regex]::Match($listingContent, '## Project Description\n+````markdown\n([\s\S]*?)````')
     if ($descMatch.Success) {
         $descBody = $descMatch.Groups[1].Value.TrimEnd()
-        $descPayload = [System.Text.Encoding]::UTF8.GetBytes((@{ body = $descBody } | ConvertTo-Json -Depth 2))
+        $descPayload = [System.Text.Encoding]::UTF8.GetBytes((@{
+                    body        = $descBody
+                    client_side = "optional"
+                    server_side = "required"
+                } | ConvertTo-Json -Depth 2))
         try {
             Invoke-RestMethod `
                 -Uri "https://api.modrinth.com/v2/project/$Slug" `
