@@ -197,7 +197,7 @@ public final class AnchorSyncPayloads {
     }
 
     private static void writeCreateAnchorRequest(RegistryFriendlyByteBuf buf, CreateAnchorRequest payload) {
-        buf.writeUtf(payload.name(), AnchorCreation.MAX_ANCHOR_NAME_LENGTH);
+        buf.writeUtf(payload.name() == null ? "" : payload.name(), AnchorCreation.MAX_ANCHOR_NAME_LENGTH);
         buf.writeUtf(payload.group() == null ? "" : payload.group());
     }
 
