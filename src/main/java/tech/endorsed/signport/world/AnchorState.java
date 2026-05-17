@@ -90,7 +90,7 @@ public class AnchorState extends SavedData {
     }
 
     private static String normalizeGroup(String group) {
-        return group == null ? "" : group;
+        return AnchorCreation.normalizeGroup(group);
     }
 
     // -------------------------------------------------------------------------

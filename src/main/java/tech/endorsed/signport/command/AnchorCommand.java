@@ -27,6 +27,7 @@ import tech.endorsed.signport.config.SignPortConfig;
 import tech.endorsed.signport.network.AnchorSyncServer;
 import tech.endorsed.signport.permission.SignPortPermissions;
 import tech.endorsed.signport.world.Anchor;
+import tech.endorsed.signport.world.AnchorCreation;
 import tech.endorsed.signport.world.AnchorState;
 import tech.endorsed.signport.world.TeleportDestinationResolver;
 
@@ -226,14 +227,14 @@ public class AnchorCommand {
         AnchorState anchorState = AnchorState.getServerState(source.getServer());
 
         var aPos = pos == null ? source.getPlayer().blockPosition() : pos;
-        if (anchorState.findAnchor(name, dim).isPresent()) throw NAME_CLASH_EXCEPTION.create();
-        for (Anchor anchor : anchorState.getAnchorsForDimension(dim)) {
-            if (anchor.pos.equals(aPos)) throw CREATE_FAILED_EXCEPTION.create();
+        AnchorCreation.Result result = AnchorCreation.create(anchorState, name, aPos, dim, group);
+        if (!result.success()) {
+            if (result.error() == AnchorCreation.Error.NAME_CLASH) throw NAME_CLASH_EXCEPTION.create();
+            throw CREATE_FAILED_EXCEPTION.create();
         }
 
-        String normalizedGroup = normalizeGroup(group);
-        Anchor anchor = new Anchor(name, aPos, dim, normalizedGroup);
-        anchorState.addAnchor(anchor);
+        Anchor anchor = result.anchor();
+        String normalizedGroup = anchor.group;
         BlueMapIntegration.anchorCreated(source.getServer(), anchor);
         AnchorSyncServer.anchorCreated(source.getServer(), anchor);
 
