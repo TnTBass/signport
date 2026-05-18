@@ -65,7 +65,7 @@ public final class AnchorBrowserScreen extends Screen {
     protected void init() {
         int left = left();
         int top = top();
-        this.searchBox = new EditBox(this.font, left, top + 36, PANEL_WIDTH - 180, 18, Component.literal("Search anchors"));
+        this.searchBox = new EditBox(this.font, left, top + 36, PANEL_WIDTH - 192, 18, Component.literal("Search anchors"));
         this.searchBox.setHint(Component.literal("Search"));
         this.searchBox.setResponder(ignored -> rebuildRows());
         this.addRenderableWidget(searchBox);
@@ -77,8 +77,8 @@ public final class AnchorBrowserScreen extends Screen {
                     rebuildRows();
                 });
         this.addRenderableWidget(sortButton);
-        this.createButton = this.addRenderableWidget(Button.builder(Component.literal("Create"), button -> openCreateDialog())
-                .bounds(left + PANEL_WIDTH - 172, top + 36, 64, 20)
+        this.createButton = this.addRenderableWidget(Button.builder(Component.literal("+ Create"), button -> openCreateDialog())
+                .bounds(left + PANEL_WIDTH - 184, top + 36, 76, 20)
                 .build());
         this.addRenderableWidget(Button.builder(Component.literal("Done"), button -> onClose())
                 .bounds(left + PANEL_WIDTH - 60, top + 6, 60, 20)
@@ -89,10 +89,10 @@ public final class AnchorBrowserScreen extends Screen {
         this.createGroupField = this.addRenderableWidget(new EditBox(this.font, left + 150, top + 120, 150, 18, Component.literal("Group")));
         this.createGroupField.setResponder(ignored -> handleCreateInputChanged());
         this.createSubmitButton = this.addRenderableWidget(Button.builder(Component.literal("Create"), button -> submitCreateDialog())
-                .bounds(left + 162, top + 164, 66, 20)
+                .bounds(left + 162, top + 192, 66, 20)
                 .build());
         this.createCancelButton = this.addRenderableWidget(Button.builder(Component.literal("Cancel"), button -> closeCreateDialog())
-                .bounds(left + 234, top + 164, 66, 20)
+                .bounds(left + 234, top + 192, 66, 20)
                 .build());
         updateCreateWidgetVisibility();
 
@@ -157,14 +157,14 @@ public final class AnchorBrowserScreen extends Screen {
         int left = left() + 58;
         int top = top() + 64;
         int width = 264;
-        int height = 128;
+        int height = 156;
         graphics.fill(left, top, left + width, top + height, 0xEE111111);
         graphics.outline(left, top, width, height, 0xFF7DA7D9);
         graphics.text(this.font, "Create anchor here", left + 10, top + 10, 0xFFFFFFFF);
         graphics.text(this.font, "Name", left + 10, top + 32, 0xFFAAAAAA);
         graphics.text(this.font, "Group", left + 10, top + 60, 0xFFAAAAAA);
         graphics.text(this.font, liveLocationLabel(), left + 10, top + 84, 0xFFAAAAAA);
-        graphics.text(this.font, createStatusMessage, left + 10, top + 100, createValidation.color);
+        graphics.text(this.font, createStatusMessage, left + 10, top + 108, createValidation.color);
         createNameField.extractRenderState(graphics, mouseX, mouseY, 0);
         createGroupField.extractRenderState(graphics, mouseX, mouseY, 0);
         createSubmitButton.extractRenderState(graphics, mouseX, mouseY, 0);
