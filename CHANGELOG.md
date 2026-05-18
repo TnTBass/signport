@@ -6,6 +6,8 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
+## 2.2.0+mc26.1.2 - 2026-05-18
+
 - Corrected the Modrinth install metadata so SignPort is shown as required on servers and optional on clients.
 - Added a client-side anchor creation form to the anchor browser for players with anchor creation permission.
 
