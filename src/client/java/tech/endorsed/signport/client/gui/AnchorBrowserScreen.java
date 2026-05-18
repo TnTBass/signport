@@ -206,12 +206,10 @@ public final class AnchorBrowserScreen extends Screen {
         double mouseY = event.y();
         if (createDialogOpen) {
             if (handleCreateSuggestionClick(mouseX, mouseY)) return true;
-            if (createNameField.mouseClicked(event, doubleClick)
-                    || createGroupField.mouseClicked(event, doubleClick)
-                    || createSubmitButton.mouseClicked(event, doubleClick)
-                    || createCancelButton.mouseClicked(event, doubleClick)) {
-                return true;
-            }
+            createNameField.mouseClicked(event, doubleClick);
+            createGroupField.mouseClicked(event, doubleClick);
+            createSubmitButton.mouseClicked(event, doubleClick);
+            createCancelButton.mouseClicked(event, doubleClick);
             return true;
         }
         for (TabHit tab : tabHits) {
@@ -410,6 +408,7 @@ public final class AnchorBrowserScreen extends Screen {
     private void updateCreateValidation() {
         if (createNameField == null || createGroupField == null) return;
         String name = createNameField.getValue().trim();
+        // Keep suggestions live while displaying a server rejection so editing can recover inline.
         createGroupSuggestions = groupSuggestions(createGroupField.getValue());
         selectedGroupSuggestion = Math.min(selectedGroupSuggestion, Math.max(0, createGroupSuggestions.size() - 1));
         ResourceKey<Level> createDimension = currentDimension();

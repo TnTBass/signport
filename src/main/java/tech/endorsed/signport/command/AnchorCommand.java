@@ -46,7 +46,6 @@ public class AnchorCommand {
             = new SimpleCommandExceptionType(Component.translatable("commands.anchor.create.nameclash"));
     private static final SimpleCommandExceptionType UNKNOWN_NAME_EXCEPTION
             = new SimpleCommandExceptionType(Component.translatable("commands.anchor.delete.unknownname"));
-    private static final String CLEAR_GROUP_SENTINEL = "-";
     private enum AnchorSort {
         NAME("name"),
         DISTANCE("distance"),
@@ -82,10 +81,10 @@ public class AnchorCommand {
         List<String> groups = AnchorState.peekServerState(server)
                 .map(s -> {
                     var suggestions = new java.util.ArrayList<>(s.getGroupsForDimension(dim));
-                    suggestions.add(CLEAR_GROUP_SENTINEL);
+                    suggestions.add(AnchorCreation.CLEAR_GROUP_SENTINEL);
                     return List.copyOf(suggestions);
                 })
-                .orElse(List.of(CLEAR_GROUP_SENTINEL));
+                .orElse(List.of(AnchorCreation.CLEAR_GROUP_SENTINEL));
         return SharedSuggestionProvider.suggest(groups, builder);
     };
 
