@@ -35,6 +35,12 @@ public class SignPortClient implements ClientModInitializer {
                 context.client().execute(() -> SignPortClientState.applyFull(payload)));
         ClientPlayNetworking.registerGlobalReceiver(AnchorSyncPayloads.DELTA_TYPE, (payload, context) ->
                 context.client().execute(() -> SignPortClientState.applyDelta(payload)));
+        ClientPlayNetworking.registerGlobalReceiver(AnchorSyncPayloads.CREATE_ANCHOR_RESPONSE_TYPE, (payload, context) ->
+                context.client().execute(() -> {
+                    if (context.client().screen instanceof AnchorBrowserScreen browser) {
+                        browser.handleCreateAnchorResponse(payload);
+                    }
+                }));
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             SignPortClientState.clear();
             initialSyncRequested = false;

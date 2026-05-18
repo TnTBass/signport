@@ -1,5 +1,6 @@
 package tech.endorsed.signport.client.gui;
 
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -14,14 +15,18 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import tech.endorsed.signport.client.AnchorClient;
 import tech.endorsed.signport.client.SignPortClientState;
+import tech.endorsed.signport.network.AnchorSyncPayloads;
+import tech.endorsed.signport.world.AnchorCreation;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 public final class AnchorBrowserScreen extends Screen {
     private static final Map<String, Boolean> COLLAPSED_GROUPS = new HashMap<>();
@@ -38,6 +43,18 @@ public final class AnchorBrowserScreen extends Screen {
     private List<GroupHit> groupHits = List.of();
     private List<TabHit> tabHits = List.of();
     private int scrollOffset = 0;
+    private Button createButton;
+    private Button createSubmitButton;
+    private Button createCancelButton;
+    private EditBox createNameField;
+    private EditBox createGroupField;
+    private boolean createDialogOpen = false;
+    private boolean createPending = false;
+    private boolean createServerRejected = false;
+    private String createStatusMessage = "";
+    private ValidationState createValidation = ValidationState.RED;
+    private List<String> createGroupSuggestions = List.of();
+    private int selectedGroupSuggestion = 0;
 
     public AnchorBrowserScreen(Screen parent) {
         super(Component.literal("SignPort Anchors"));
@@ -48,7 +65,7 @@ public final class AnchorBrowserScreen extends Screen {
     protected void init() {
         int left = left();
         int top = top();
-        this.searchBox = new EditBox(this.font, left, top + 36, PANEL_WIDTH - 112, 18, Component.literal("Search anchors"));
+        this.searchBox = new EditBox(this.font, left, top + 36, PANEL_WIDTH - 180, 18, Component.literal("Search anchors"));
         this.searchBox.setHint(Component.literal("Search"));
         this.searchBox.setResponder(ignored -> rebuildRows());
         this.addRenderableWidget(searchBox);
@@ -60,9 +77,24 @@ public final class AnchorBrowserScreen extends Screen {
                     rebuildRows();
                 });
         this.addRenderableWidget(sortButton);
+        this.createButton = this.addRenderableWidget(Button.builder(Component.literal("Create"), button -> openCreateDialog())
+                .bounds(left + PANEL_WIDTH - 172, top + 6, 64, 20)
+                .build());
         this.addRenderableWidget(Button.builder(Component.literal("Done"), button -> onClose())
                 .bounds(left + PANEL_WIDTH - 60, top + 6, 60, 20)
                 .build());
+        this.createNameField = this.addRenderableWidget(new EditBox(this.font, left + 150, top + 92, 150, 18, Component.literal("Anchor name")));
+        this.createNameField.setMaxLength(AnchorCreation.MAX_ANCHOR_NAME_LENGTH);
+        this.createNameField.setResponder(ignored -> handleCreateInputChanged());
+        this.createGroupField = this.addRenderableWidget(new EditBox(this.font, left + 150, top + 120, 150, 18, Component.literal("Group")));
+        this.createGroupField.setResponder(ignored -> handleCreateInputChanged());
+        this.createSubmitButton = this.addRenderableWidget(Button.builder(Component.literal("Create"), button -> submitCreateDialog())
+                .bounds(left + 162, top + 164, 66, 20)
+                .build());
+        this.createCancelButton = this.addRenderableWidget(Button.builder(Component.literal("Cancel"), button -> closeCreateDialog())
+                .bounds(left + 234, top + 164, 66, 20)
+                .build());
+        updateCreateWidgetVisibility();
 
         if (this.selectedDimension == null && this.minecraft != null && this.minecraft.level != null) {
             this.selectedDimension = this.minecraft.level.dimension();
@@ -74,6 +106,7 @@ public final class AnchorBrowserScreen extends Screen {
     @Override
     public void tick() {
         rebuildRows();
+        if (createDialogOpen) updateCreateValidation();
     }
 
     @Override
@@ -89,33 +122,70 @@ public final class AnchorBrowserScreen extends Screen {
         int y = top + 88;
         if (SignPortClientState.anchors().isEmpty()) {
             graphics.centeredText(this.font, Component.literal("No synced anchors"), left + PANEL_WIDTH / 2, y + 24, 0xFFAAAAAA);
-            return;
-        }
-
-        int contentTop = top + 88;
-        int contentBottom = top + panelHeight();
-        graphics.enableScissor(left, contentTop, left + PANEL_WIDTH, contentBottom);
-        for (GroupHit group : groupHits) {
-            if (group.y() + GROUP_HEIGHT <= contentTop || group.y() >= contentBottom) continue;
-            boolean collapsed = isCollapsed(group.key());
-            graphics.fill(left, group.y(), left + PANEL_WIDTH, group.y() + GROUP_HEIGHT, 0xFF242424);
-            graphics.text(this.font, (collapsed ? "+ " : "- ") + group.label() + " (" + group.count() + ")", left + 6, group.y() + 5, 0xFFE0E0E0);
-        }
-
-        for (RowHit row : rowHits) {
-            if (row.y() + ROW_HEIGHT <= contentTop || row.y() >= contentBottom) continue;
-            int color = row.contains(mouseX, mouseY) ? 0xFF333E4A : 0xFF1B1B1B;
-            graphics.fill(left, row.y(), left + PANEL_WIDTH, row.y() + ROW_HEIGHT - 1, color);
-            AnchorClient anchor = row.anchor();
-            graphics.text(this.font, rowTitle(anchor), left + 6, row.y() + 4, 0xFFFFFFFF);
-            graphics.text(this.font, rowMeta(anchor), left + 118, row.y() + 4, 0xFFB8B8B8);
-            if (showRawTeleportButton()) {
-                graphics.fill(row.teleportX(), row.y() + 3, row.teleportX() + 58, row.y() + 17, 0xFF29445F);
-                graphics.outline(row.teleportX(), row.y() + 3, 58, 14, 0xFF5988B8);
-                graphics.centeredText(this.font, Component.literal("teleport"), row.teleportX() + 29, row.y() + 6, 0xFFFFFFFF);
+        } else {
+            int contentTop = top + 88;
+            int contentBottom = top + panelHeight();
+            graphics.enableScissor(left, contentTop, left + PANEL_WIDTH, contentBottom);
+            for (GroupHit group : groupHits) {
+                if (group.y() + GROUP_HEIGHT <= contentTop || group.y() >= contentBottom) continue;
+                boolean collapsed = isCollapsed(group.key());
+                graphics.fill(left, group.y(), left + PANEL_WIDTH, group.y() + GROUP_HEIGHT, 0xFF242424);
+                graphics.text(this.font, (collapsed ? "+ " : "- ") + group.label() + " (" + group.count() + ")", left + 6, group.y() + 5, 0xFFE0E0E0);
             }
+
+            for (RowHit row : rowHits) {
+                if (row.y() + ROW_HEIGHT <= contentTop || row.y() >= contentBottom) continue;
+                int color = row.contains(mouseX, mouseY) ? 0xFF333E4A : 0xFF1B1B1B;
+                graphics.fill(left, row.y(), left + PANEL_WIDTH, row.y() + ROW_HEIGHT - 1, color);
+                AnchorClient anchor = row.anchor();
+                graphics.text(this.font, rowTitle(anchor), left + 6, row.y() + 4, 0xFFFFFFFF);
+                graphics.text(this.font, rowMeta(anchor), left + 118, row.y() + 4, 0xFFB8B8B8);
+                if (showRawTeleportButton()) {
+                    graphics.fill(row.teleportX(), row.y() + 3, row.teleportX() + 58, row.y() + 17, 0xFF29445F);
+                    graphics.outline(row.teleportX(), row.y() + 3, 58, 14, 0xFF5988B8);
+                    graphics.centeredText(this.font, Component.literal("teleport"), row.teleportX() + 29, row.y() + 6, 0xFFFFFFFF);
+                }
+            }
+            graphics.disableScissor();
         }
-        graphics.disableScissor();
+        if (createDialogOpen) {
+            renderCreateDialog(graphics, mouseX, mouseY);
+        }
+    }
+
+    private void renderCreateDialog(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        int left = left() + 58;
+        int top = top() + 64;
+        int width = 264;
+        int height = 128;
+        graphics.fill(left, top, left + width, top + height, 0xEE111111);
+        graphics.outline(left, top, width, height, 0xFF7DA7D9);
+        graphics.text(this.font, "Create anchor here", left + 10, top + 10, 0xFFFFFFFF);
+        graphics.text(this.font, "Name", left + 10, top + 32, 0xFFAAAAAA);
+        graphics.text(this.font, "Group", left + 10, top + 60, 0xFFAAAAAA);
+        graphics.text(this.font, liveLocationLabel(), left + 10, top + 84, 0xFFAAAAAA);
+        graphics.text(this.font, createStatusMessage, left + 10, top + 100, createValidation.color);
+        createNameField.extractRenderState(graphics, mouseX, mouseY, 0);
+        createGroupField.extractRenderState(graphics, mouseX, mouseY, 0);
+        createSubmitButton.extractRenderState(graphics, mouseX, mouseY, 0);
+        createCancelButton.extractRenderState(graphics, mouseX, mouseY, 0);
+        renderCreateGroupSuggestions(graphics, mouseX, mouseY);
+    }
+
+    private void renderCreateGroupSuggestions(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        if (createGroupSuggestions.isEmpty() || createGroupField == null || !createGroupField.isFocused()) return;
+        int x = createGroupField.getX();
+        int y = createGroupField.getY() + createGroupField.getHeight() + 2;
+        int width = createGroupField.getWidth();
+        int height = createGroupSuggestions.size() * 16;
+        graphics.fill(x - 2, y - 2, x + width + 2, y + height + 2, 0xEE111111);
+        graphics.outline(x - 2, y - 2, width + 4, height + 4, 0xFF555555);
+        for (int i = 0; i < createGroupSuggestions.size(); i++) {
+            int rowY = y + i * 16;
+            boolean selected = i == selectedGroupSuggestion;
+            graphics.fill(x, rowY, x + width, rowY + 16, selected ? 0xFF3C4B5D : 0xFF222222);
+            graphics.text(this.font, createGroupSuggestions.get(i), x + 4, rowY + 4, 0xFFFFFFFF);
+        }
     }
 
     private void drawTabs(GuiGraphicsExtractor graphics, int left, int y) {
@@ -134,6 +204,16 @@ public final class AnchorBrowserScreen extends Screen {
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         double mouseX = event.x();
         double mouseY = event.y();
+        if (createDialogOpen) {
+            if (handleCreateSuggestionClick(mouseX, mouseY)) return true;
+            if (createNameField.mouseClicked(event, doubleClick)
+                    || createGroupField.mouseClicked(event, doubleClick)
+                    || createSubmitButton.mouseClicked(event, doubleClick)
+                    || createCancelButton.mouseClicked(event, doubleClick)) {
+                return true;
+            }
+            return true;
+        }
         for (TabHit tab : tabHits) {
             if (tab.contains(mouseX, mouseY)) {
                 selectedDimension = tab.dimension();
@@ -182,6 +262,31 @@ public final class AnchorBrowserScreen extends Screen {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
+        if (createDialogOpen) {
+            if (event.key() == 256) {
+                closeCreateDialog();
+                return true;
+            }
+            if (event.key() == 257 || event.key() == 335) {
+                submitCreateDialog();
+                return true;
+            }
+            if (createGroupField.isFocused() && !createGroupSuggestions.isEmpty()) {
+                if (event.key() == 264) {
+                    selectedGroupSuggestion = Math.min(createGroupSuggestions.size() - 1, selectedGroupSuggestion + 1);
+                    return true;
+                }
+                if (event.key() == 265) {
+                    selectedGroupSuggestion = Math.max(0, selectedGroupSuggestion - 1);
+                    return true;
+                }
+                if (event.key() == 258) {
+                    applySelectedGroupSuggestion();
+                    return true;
+                }
+            }
+            return createNameField.keyPressed(event) || createGroupField.keyPressed(event) || super.keyPressed(event);
+        }
         if (event.key() == 256) {
             onClose();
             return true;
@@ -239,6 +344,167 @@ public final class AnchorBrowserScreen extends Screen {
         }
         groupHits = groups;
         rowHits = rows;
+    }
+
+    public void handleCreateAnchorResponse(AnchorSyncPayloads.CreateAnchorResponse response) {
+        if (!createDialogOpen || !createPending) return;
+        createPending = false;
+        if (response.success()) {
+            closeCreateDialog();
+            rebuildRows();
+            return;
+        }
+        createStatusMessage = response.errorMessage();
+        createServerRejected = true;
+        updateCreateValidation();
+    }
+
+    private void handleCreateInputChanged() {
+        if (createServerRejected) {
+            createServerRejected = false;
+        }
+        updateCreateValidation();
+    }
+
+    private boolean canCreateAnchor() {
+        return SignPortClientState.serverHasSignPort() && SignPortClientState.permissions().canCreateAnchor();
+    }
+
+    private void openCreateDialog() {
+        if (!canCreateAnchor()) return;
+        createDialogOpen = true;
+        createPending = false;
+        createServerRejected = false;
+        createStatusMessage = "";
+        createNameField.setValue("");
+        createGroupField.setValue("");
+        selectedGroupSuggestion = 0;
+        updateCreateValidation();
+        updateCreateWidgetVisibility();
+        setInitialFocus(createNameField);
+        createNameField.setFocused(true);
+    }
+
+    private void closeCreateDialog() {
+        createDialogOpen = false;
+        createPending = false;
+        createServerRejected = false;
+        createStatusMessage = "";
+        createNameField.setFocused(false);
+        createGroupField.setFocused(false);
+        updateCreateWidgetVisibility();
+    }
+
+    private void submitCreateDialog() {
+        updateCreateValidation();
+        if (createValidation == ValidationState.RED || createPending) return;
+        createPending = true;
+        createServerRejected = false;
+        createStatusMessage = "Creating...";
+        updateCreateWidgetVisibility();
+        ClientPlayNetworking.send(new AnchorSyncPayloads.CreateAnchorRequest(
+                createNameField.getValue().trim(),
+                createGroupField.getValue()));
+    }
+
+    private void updateCreateValidation() {
+        if (createNameField == null || createGroupField == null) return;
+        String name = createNameField.getValue().trim();
+        createGroupSuggestions = groupSuggestions(createGroupField.getValue());
+        selectedGroupSuggestion = Math.min(selectedGroupSuggestion, Math.max(0, createGroupSuggestions.size() - 1));
+        ResourceKey<Level> createDimension = currentDimension();
+
+        if (createServerRejected) {
+            createValidation = ValidationState.RED;
+            updateCreateWidgetVisibility();
+            return;
+        }
+        if (name.isEmpty() || name.length() > AnchorCreation.MAX_ANCHOR_NAME_LENGTH || createDimension == null) {
+            createValidation = ValidationState.RED;
+            createStatusMessage = "Enter an anchor name";
+            updateCreateWidgetVisibility();
+            return;
+        }
+        if (SignPortClientState.find(name, createDimension).isPresent()) {
+            createValidation = ValidationState.RED;
+            createStatusMessage = "Name already exists in this dimension";
+            updateCreateWidgetVisibility();
+            return;
+        }
+        if (SignPortClientState.findAnyDimension(name).isPresent()) {
+            createValidation = ValidationState.ORANGE;
+            createStatusMessage = "Name exists in another dimension. Signs may need a dimension line.";
+            updateCreateWidgetVisibility();
+            return;
+        }
+        createValidation = ValidationState.GREEN;
+        createStatusMessage = "Ready to create";
+        updateCreateWidgetVisibility();
+    }
+
+    private List<String> groupSuggestions(String input) {
+        String needle = input == null ? "" : input.toLowerCase(Locale.ROOT);
+        Set<String> groups = new LinkedHashSet<>();
+        for (AnchorClient anchor : SignPortClientState.anchors()) {
+            if (anchor.group() != null && !anchor.group().isBlank()
+                    && anchor.group().toLowerCase(Locale.ROOT).contains(needle)) {
+                groups.add(anchor.group());
+            }
+        }
+        return groups.stream().limit(5).toList();
+    }
+
+    private ResourceKey<Level> currentDimension() {
+        return this.minecraft != null && this.minecraft.level != null ? this.minecraft.level.dimension() : null;
+    }
+
+    private boolean handleCreateSuggestionClick(double mouseX, double mouseY) {
+        if (createGroupSuggestions.isEmpty() || createGroupField == null || !createGroupField.isFocused()) return false;
+        int x = createGroupField.getX();
+        int y = createGroupField.getY() + createGroupField.getHeight() + 2;
+        int width = createGroupField.getWidth();
+        for (int i = 0; i < createGroupSuggestions.size(); i++) {
+            int rowY = y + i * 16;
+            if (mouseX >= x && mouseX < x + width && mouseY >= rowY && mouseY < rowY + 16) {
+                selectedGroupSuggestion = i;
+                applySelectedGroupSuggestion();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void applySelectedGroupSuggestion() {
+        if (createGroupSuggestions.isEmpty()) return;
+        createGroupField.setValue(createGroupSuggestions.get(selectedGroupSuggestion));
+        createGroupField.setFocused(true);
+        updateCreateValidation();
+    }
+
+    private void updateCreateWidgetVisibility() {
+        if (createButton != null) {
+            createButton.visible = canCreateAnchor();
+            createButton.active = canCreateAnchor() && !createDialogOpen;
+        }
+        if (createNameField == null) return;
+        createNameField.visible = createDialogOpen;
+        createNameField.active = createDialogOpen && !createPending;
+        createGroupField.visible = createDialogOpen;
+        createGroupField.active = createDialogOpen && !createPending;
+        createSubmitButton.visible = createDialogOpen;
+        createSubmitButton.active = createDialogOpen && !createPending && createValidation != ValidationState.RED;
+        createCancelButton.visible = createDialogOpen;
+        createCancelButton.active = createDialogOpen;
+    }
+
+    private String liveLocationLabel() {
+        if (this.minecraft == null || this.minecraft.player == null || this.minecraft.level == null) {
+            return "Current location unavailable";
+        }
+        BlockPos pos = this.minecraft.player.blockPosition();
+        return "%s %d %d %d".formatted(
+                this.minecraft.level.dimension().identifier(),
+                pos.getX(), pos.getY(), pos.getZ());
     }
 
     private Comparator<AnchorClient> comparator() {
@@ -345,6 +611,18 @@ public final class AnchorBrowserScreen extends Screen {
 
         Component label() {
             return Component.literal(label);
+        }
+    }
+
+    private enum ValidationState {
+        GREEN(0xFF55FF55),
+        ORANGE(0xFFFFAA00),
+        RED(0xFFFF5555);
+
+        private final int color;
+
+        ValidationState(int color) {
+            this.color = color;
         }
     }
 
