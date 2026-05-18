@@ -419,27 +419,27 @@ public final class AnchorBrowserScreen extends Screen {
             updateCreateWidgetVisibility();
             return;
         }
-        if (name.isEmpty() || name.length() > AnchorCreation.MAX_ANCHOR_NAME_LENGTH || createDimension == null) {
-            createValidation = ValidationState.RED;
-            createStatusMessage = "Enter an anchor name";
-            updateCreateWidgetVisibility();
-            return;
+        switch (AnchorCreateValidation.validate(name, createDimension)) {
+            case RED -> {
+                createValidation = ValidationState.RED;
+                createStatusMessage = isInvalidCreateName(name, createDimension)
+                        ? "Enter an anchor name"
+                        : "Name already exists in this dimension";
+            }
+            case ORANGE -> {
+                createValidation = ValidationState.ORANGE;
+                createStatusMessage = "Name exists in another dimension. Signs may need a dimension line.";
+            }
+            case GREEN -> {
+                createValidation = ValidationState.GREEN;
+                createStatusMessage = "Ready to create";
+            }
         }
-        if (SignPortClientState.find(name, createDimension).isPresent()) {
-            createValidation = ValidationState.RED;
-            createStatusMessage = "Name already exists in this dimension";
-            updateCreateWidgetVisibility();
-            return;
-        }
-        if (SignPortClientState.findAnyDimension(name).isPresent()) {
-            createValidation = ValidationState.ORANGE;
-            createStatusMessage = "Name exists in another dimension. Signs may need a dimension line.";
-            updateCreateWidgetVisibility();
-            return;
-        }
-        createValidation = ValidationState.GREEN;
-        createStatusMessage = "Ready to create";
         updateCreateWidgetVisibility();
+    }
+
+    private boolean isInvalidCreateName(String name, ResourceKey<Level> createDimension) {
+        return name.isEmpty() || name.length() > AnchorCreation.MAX_ANCHOR_NAME_LENGTH || createDimension == null;
     }
 
     private List<String> groupSuggestions(String input) {
