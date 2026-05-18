@@ -111,7 +111,6 @@ public final class AnchorBrowserScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         int left = left();
         int top = top();
         graphics.fill(left - 12, top - 8, left + PANEL_WIDTH + 12, top + panelHeight(), 0xCC101010);
@@ -148,6 +147,7 @@ public final class AnchorBrowserScreen extends Screen {
             }
             graphics.disableScissor();
         }
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         if (createDialogOpen) {
             renderCreateDialog(graphics, mouseX, mouseY);
         }
