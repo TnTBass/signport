@@ -78,7 +78,7 @@ public final class AnchorBrowserScreen extends Screen {
                 });
         this.addRenderableWidget(sortButton);
         this.createButton = this.addRenderableWidget(Button.builder(Component.literal("Create"), button -> openCreateDialog())
-                .bounds(left + PANEL_WIDTH - 172, top + 6, 64, 20)
+                .bounds(left + PANEL_WIDTH - 172, top + 36, 64, 20)
                 .build());
         this.addRenderableWidget(Button.builder(Component.literal("Done"), button -> onClose())
                 .bounds(left + PANEL_WIDTH - 60, top + 6, 60, 20)
