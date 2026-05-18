@@ -40,7 +40,7 @@ jobs:
           version="${GITHUB_REF_NAME#v}"
           test -f "build/libs/signport-${version}.jar"
           test -f "build/libs/signport-${version}-sources.jar"
-      - name: extract changelog notes
+      - name: extract public changelog notes
         run: |
           version="${GITHUB_REF_NAME#v}"
           awk -v version="$version" '

@@ -6,8 +6,6 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
-- Added a release recovery workflow for retrying CurseForge uploads after upstream API failures.
-
 ## 2.2.0+mc26.1.2 - 2026-05-18
 
 - Added a client-side anchor creation form to the anchor browser for players with anchor creation permission.

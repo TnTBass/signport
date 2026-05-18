@@ -38,7 +38,7 @@ jobs:
           if (-not (Test-Path -LiteralPath $jar)) {
             throw "Release artifact not found: $jar"
           }
-      - name: extract changelog notes
+      - name: extract public changelog notes
         shell: pwsh
         run: |
           $version = '${{ inputs.version }}'

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version number to read from CHANGELOG.md, without leading v'
+        description: 'Version number to read from public CHANGELOG.md, without leading v'
         required: true
         type: string
       modrinth_version_id:
@@ -16,7 +16,7 @@ on:
         required: false
         type: string
       changelog_path:
-        description: 'Optional repo-relative notes file; defaults to extracting from CHANGELOG.md'
+        description: 'Optional repo-relative public notes file; defaults to extracting from CHANGELOG.md'
         required: false
         type: string
 

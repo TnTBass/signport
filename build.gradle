@@ -80,7 +80,7 @@ tasks.withType(Test).configureEach {
 
 tasks.register("checkChangelog") {
 	group = "verification"
-	description = "Requires CHANGELOG.md Unreleased notes for releasable changes."
+	description = "Requires public or internal changelog notes for releasable changes."
 
 	doLast {
 		def githubActor = System.getenv("GITHUB_ACTOR") ?: ""
@@ -150,35 +150,40 @@ tasks.register("checkChangelog") {
 			return
 		}
 
-		if (!changedFiles.contains("CHANGELOG.md")) {
-			throw new GradleException("Releasable changes require a CHANGELOG.md update under Unreleased.\n\nReleasable files:\n${releasableFiles.join("\n")}")
+		def changelogFiles = ["CHANGELOG.md", "INTERNAL_CHANGELOG.md"]
+		def changedChangelogFiles = changelogFiles.findAll { changedFiles.contains(it) }
+		if (changedChangelogFiles.isEmpty()) {
+			throw new GradleException("Releasable changes require a public CHANGELOG.md or internal INTERNAL_CHANGELOG.md update under Unreleased.\n\nReleasable files:\n${releasableFiles.join("\n")}")
 		}
 
-		def changelog = file("CHANGELOG.md").text.readLines()
-		def inUnreleased = false
-		def hasBullet = false
-		def hasReleaseSection = false
-		for (line in changelog) {
-			if (line ==~ /^##\s+\d+\.\d+\.\d+.*$/) {
-				hasReleaseSection = true
-			}
+		def hasNotes = { String path ->
+			def changelog = file(path).text.readLines()
+			def inUnreleased = false
+			def hasBullet = false
+			def hasReleaseSection = false
+			for (line in changelog) {
+				if (line ==~ /^##\s+\d+\.\d+\.\d+.*$/) {
+					hasReleaseSection = true
+				}
 
-			if (line ==~ /^##\s+Unreleased\s*$/) {
-				inUnreleased = true
-				continue
-			}
+				if (line ==~ /^##\s+Unreleased\s*$/) {
+					inUnreleased = true
+					continue
+				}
 
-			if (inUnreleased && line ==~ /^##\s+.*/) {
-				break
-			}
+				if (inUnreleased && line ==~ /^##\s+.*/) {
+					break
+				}
 
-			if (inUnreleased && line ==~ /^-\s+.*/) {
-				hasBullet = true
+				if (inUnreleased && line ==~ /^-\s+.*/) {
+					hasBullet = true
+				}
 			}
+			return hasBullet || hasReleaseSection
 		}
 
-		if (!hasBullet && !hasReleaseSection) {
-			throw new GradleException("CHANGELOG.md must contain at least one bullet under '## Unreleased' or a versioned release section.")
+		if (!changedChangelogFiles.any { hasNotes(it) }) {
+			throw new GradleException("Changed changelog files must contain at least one bullet under '## Unreleased' or a versioned release section: ${changedChangelogFiles.join(", ")}")
 		}
 
 		logger.lifecycle("Changelog gate passed.")
@@ -357,8 +362,43 @@ tasks.register("releaseReminder") {
 	}
 }
 
+tasks.register("internalReleaseReminder") {
+	group = "verification"
+	description = "Prints a reminder when internal changelog entries exist."
+
+	doLast {
+		if (!file("INTERNAL_CHANGELOG.md").exists()) return
+
+		def changelog = file("INTERNAL_CHANGELOG.md").text.readLines()
+		def inUnreleased = false
+		def unreleasedEntries = []
+		for (line in changelog) {
+			if (line ==~ /^##\s+Unreleased\s*$/) {
+				inUnreleased = true
+				continue
+			}
+
+			if (inUnreleased && line ==~ /^##\s+.*/) {
+				break
+			}
+
+			if (inUnreleased && line ==~ /^-\s+.*/) {
+				unreleasedEntries.add(line)
+			}
+		}
+
+		if (unreleasedEntries.isEmpty()) return
+
+		logger.lifecycle("")
+		logger.lifecycle("Internal changelog reminder:")
+		logger.lifecycle("INTERNAL_CHANGELOG.md has ${unreleasedEntries.size()} Unreleased entr${unreleasedEntries.size() == 1 ? "y" : "ies"} for maintainer-only changes.")
+		logger.lifecycle("Do not publish these notes to GitHub Releases, Modrinth, or CurseForge.")
+		logger.lifecycle("")
+	}
+}
+
 tasks.named("build") {
-	finalizedBy("releaseReminder")
+	finalizedBy("releaseReminder", "internalReleaseReminder")
 }
 
 java {

@@ -105,7 +105,7 @@ Use this quiet build pattern by default to conserve context. Do not inspect or p
 
 The build attaches several gates to `check`:
 
-- **`checkChangelog`** — releasable changes (anything under `src/main/`, `build.gradle`, `settings.gradle`, `gradle.properties`, `gradle/`, `.github/workflows/`, or `README.md`) must add a bullet under `## Unreleased` in `CHANGELOG.md`. Dependabot actors/refs are skipped.
+- **`checkChangelog`** — releasable changes (anything under `src/main/`, `build.gradle`, `settings.gradle`, `gradle.properties`, `gradle/`, `.github/workflows/`, or `README.md`) must add a bullet under `## Unreleased` in either `CHANGELOG.md` for public player/admin-facing notes or `INTERNAL_CHANGELOG.md` for maintainer-only build/release/process notes. Dependabot actors/refs are skipped.
 - **`checkWrapperChecksum`** — `gradle/wrapper/gradle-wrapper.properties` must pin `distributionSha256Sum`.
 - **`checkUnitTestCompanions`** — every `*Config.java`, `*Format.java`, `*Resolver.java`, `*State.java` under `src/main/java` must have a matching `*Test.java` under `src/test/java`. New helper classes that match those suffixes need a companion test or the build fails.
 - **`checkSourceHygiene`** — guards specific patterns (mixin shape, GitHub workflow permissions, release workflow secret usage, GitHub Actions pinned to commit SHAs not mutable tags, stale Mojang mapping accessors such as `ResourceKey.location()`). Read `build.gradle` before adding patterns to make sure the gate stays satisfied.
@@ -125,14 +125,14 @@ The build attaches several gates to `check`:
 Work-in-progress phases do NOT trigger releases. Do not assume every phase needs its own commit. The per-phase rhythm is:
 
 1. Build locally (the build is the primary mechanical gate).
-2. Add bullets under `## Unreleased` in `CHANGELOG.md`.
+2. Add bullets under `## Unreleased` in the right changelog: `CHANGELOG.md` for public player/admin-facing notes, or `INTERNAL_CHANGELOG.md` for maintainer-only build/release/process notes.
 
 That's all that's required per phase unless the user asks for a commit. Prefer batching related phases together, then when the final phase in the batch is clean: build, commit, and prepare/release if explicitly requested. Pushing to GitHub and cutting a release are separate decisions.
 
 - **Push:** whenever convenient. CI re-runs the gates on push.
 - **Release:** an explicit decision made when one or more Unreleased entries are worth shipping together. A release does NOT have to map 1:1 to a phase — it's common to bundle multiple phases into a single versioned release.
 
-The `releaseReminder` Gradle task that runs at the end of `build` is informational; it lists Unreleased entries and prints the release recipe. It does not release anything.
+The `releaseReminder` and `internalReleaseReminder` Gradle tasks that run at the end of `build` are informational; they list public and internal Unreleased entries separately. They do not release anything.
 
 ## Release Workflow
 
@@ -140,13 +140,15 @@ Version scheme: `<major>.<minor>.<patch>+mc<mc-version>` — e.g. `1.2.1+mc26.1.
 
 Release steps:
 
-1. Move relevant `CHANGELOG.md` entries from `Unreleased` to a versioned section.
+1. Move relevant public `CHANGELOG.md` entries from `Unreleased` to a versioned section. Keep maintainer-only entries in `INTERNAL_CHANGELOG.md`; they are not published to GitHub Releases, Modrinth, or CurseForge.
 2. Update `mod_version` in `gradle.properties`.
 3. Run the full build.
 4. Commit the release prep.
 5. Tag the release.
 6. Push `main` and the tag.
 7. Verify the release workflow run on GitHub Actions.
+
+Before pushing release prep or tags, show the user the exact versioned public `CHANGELOG.md` section that will be published and wait for approval.
 
 The release workflow validates the tag pattern, builds with Java 25, creates a GitHub Release with the remapped mod jar and sources jar, and publishes the same build to Modrinth (`signport` project) and CurseForge.
 
@@ -268,7 +270,7 @@ Resulting framework picks for the client mod phases:
 ## Working Style
 
 - Keep phases focused. One phase per session unless a previous phase is already complete and committed.
-- Update `CHANGELOG.md` under `## Unreleased` for every releasable phase change — the `checkChangelog` gate enforces this. Do not commit every phase by default; batch commits until the final requested phase or until the user explicitly asks for a checkpoint commit.
+- Update `CHANGELOG.md` under `## Unreleased` for public player/admin-facing phase changes, or `INTERNAL_CHANGELOG.md` under `## Unreleased` for maintainer-only build/release/process changes — the `checkChangelog` gate enforces this split. Do not commit every phase by default; batch commits until the final requested phase or until the user explicitly asks for a checkpoint commit.
 - Do not push or tag at the end of a phase. Those are explicit user decisions; see "Release Cadence" above.
 - Do not revert unrelated user changes.
 - Prefer small, testable helpers; the `checkUnitTestCompanions` gate enforces companion tests for `*Config`, `*Format`, `*Resolver`, `*State` classes.
