@@ -7,6 +7,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.core.BlockPos;
@@ -206,8 +207,16 @@ public final class AnchorBrowserScreen extends Screen {
         double mouseY = event.y();
         if (createDialogOpen) {
             if (handleCreateSuggestionClick(mouseX, mouseY)) return true;
-            createNameField.mouseClicked(event, doubleClick);
-            createGroupField.mouseClicked(event, doubleClick);
+            if (createNameField.isMouseOver(mouseX, mouseY)) {
+                focusCreateField(createNameField);
+                createNameField.mouseClicked(event, doubleClick);
+                return true;
+            }
+            if (createGroupField.isMouseOver(mouseX, mouseY)) {
+                focusCreateField(createGroupField);
+                createGroupField.mouseClicked(event, doubleClick);
+                return true;
+            }
             createSubmitButton.mouseClicked(event, doubleClick);
             createCancelButton.mouseClicked(event, doubleClick);
             return true;
@@ -290,6 +299,14 @@ public final class AnchorBrowserScreen extends Screen {
             return true;
         }
         return super.keyPressed(event);
+    }
+
+    @Override
+    public boolean charTyped(CharacterEvent event) {
+        if (createDialogOpen) {
+            return createNameField.charTyped(event) || createGroupField.charTyped(event);
+        }
+        return super.charTyped(event);
     }
 
     @Override
@@ -379,8 +396,7 @@ public final class AnchorBrowserScreen extends Screen {
         selectedGroupSuggestion = 0;
         updateCreateValidation();
         updateCreateWidgetVisibility();
-        setInitialFocus(createNameField);
-        createNameField.setFocused(true);
+        focusCreateField(createNameField);
     }
 
     private void closeCreateDialog() {
@@ -476,8 +492,14 @@ public final class AnchorBrowserScreen extends Screen {
     private void applySelectedGroupSuggestion() {
         if (createGroupSuggestions.isEmpty()) return;
         createGroupField.setValue(createGroupSuggestions.get(selectedGroupSuggestion));
-        createGroupField.setFocused(true);
+        focusCreateField(createGroupField);
         updateCreateValidation();
+    }
+
+    private void focusCreateField(EditBox field) {
+        setFocused(field);
+        createNameField.setFocused(field == createNameField);
+        createGroupField.setFocused(field == createGroupField);
     }
 
     private void updateCreateWidgetVisibility() {
