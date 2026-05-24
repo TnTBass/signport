@@ -6,6 +6,10 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
+## 2.2.1+mc26.1.2 - 2026-05-24
+
+- Removed repeated group prefixes from anchor browser rows; group names still appear in the section headers.
+
 ## 2.2.0+mc26.1.2 - 2026-05-18
 
 - Added a client-side anchor creation form to the anchor browser for players with anchor creation permission.

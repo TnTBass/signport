@@ -576,8 +576,8 @@ public final class AnchorBrowserScreen extends Screen {
         }
     }
 
-    private String rowTitle(AnchorClient anchor) {
-        return anchor.group() == null || anchor.group().isBlank() ? anchor.name() : anchor.group() + ": " + anchor.name();
+    static String rowTitle(AnchorClient anchor) {
+        return anchor.name();
     }
 
     private String rowMeta(AnchorClient anchor) {
