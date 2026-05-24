@@ -62,6 +62,7 @@ jobs:
           }
           $notes | Set-Content -LiteralPath "release-notes.md" -Encoding UTF8
       - name: publish curseforge release
+        id: curseforge
         shell: pwsh
         env:
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
@@ -69,7 +70,10 @@ jobs:
         run: |
           $version = '${{ inputs.version }}'
           ./scripts/upload-curseforge.ps1 `
-            -Slug "modern-signport" `
+            -Slug "signport" `
             -Version $version `
             -JarPath "build/libs/signport-$version.jar" `
             -ChangelogPath "release-notes.md"
+      - name: report curseforge file ID
+        run: |
+          echo "CurseForge file ID: ${{ steps.curseforge.outputs.curseforge_file_id }}"

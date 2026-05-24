@@ -322,8 +322,24 @@ tasks.register("checkSourceHygiene") {
 	}
 }
 
+tasks.register("checkReleasePublishingSources") {
+	group = "verification"
+	description = "Checks release publishing scripts and workflows for marketplace upload safeguards."
+
+	doLast {
+		def result = providers.exec {
+			if (System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("windows")) {
+				commandLine("powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/test-release-publishing-sources.ps1")
+			} else {
+				commandLine("pwsh", "-NoProfile", "-File", "scripts/test-release-publishing-sources.ps1")
+			}
+		}
+		result.result.get().assertNormalExitValue()
+	}
+}
+
 tasks.named("check") {
-	dependsOn("checkChangelog", "checkWrapperChecksum", "checkUnitTestCompanions", "checkSourceHygiene")
+	dependsOn("checkChangelog", "checkWrapperChecksum", "checkUnitTestCompanions", "checkSourceHygiene", "checkReleasePublishingSources")
 }
 
 tasks.register("releaseReminder") {

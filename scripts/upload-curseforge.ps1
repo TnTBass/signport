@@ -1,6 +1,6 @@
 param(
     [string] $ProjectId = "",
-    [string] $Slug = "modern-signport",
+    [string] $Slug = "signport",
     [string] $Version = "",
     [string] $JarPath = "",
     [string] $ChangelogPath = ""
@@ -51,7 +51,11 @@ function Get-Changelog {
     if (![string]::IsNullOrWhiteSpace($Path)) {
         $resolvedPath = Join-Path $root $Path
         if (Test-Path -LiteralPath $resolvedPath) {
-            $content = ((Get-Content -Raw -LiteralPath $resolvedPath) ?? "").Trim()
+            $content = Get-Content -Raw -LiteralPath $resolvedPath
+            if ($null -eq $content) {
+                $content = ""
+            }
+            $content = $content.Trim()
             if (![string]::IsNullOrWhiteSpace($content)) {
                 return $content
             }
@@ -149,18 +153,31 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $curseForgeFile = $uploadResponse | ConvertFrom-Json
-if ($curseForgeFile.error -or $curseForgeFile.errors) {
+if (
+    ($curseForgeFile.PSObject.Properties.Name -contains "error") -or
+    ($curseForgeFile.PSObject.Properties.Name -contains "errors") -or
+    ($curseForgeFile.PSObject.Properties.Name -contains "errorCode") -or
+    ($curseForgeFile.PSObject.Properties.Name -contains "errorMessage")
+) {
     throw "CurseForge file upload failed: $uploadResponse"
 }
 
-if ($null -eq $curseForgeFile.id) {
-    throw "CurseForge file upload did not return a file id: $uploadResponse"
+if (
+    ($curseForgeFile.PSObject.Properties.Name -notcontains "id") -or
+    [string]::IsNullOrWhiteSpace([string] $curseForgeFile.id)
+) {
+    throw "CurseForge file upload did not return a file ID: $uploadResponse"
+}
+
+$curseForgeFileId = [string] $curseForgeFile.id
+if (-not [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable("GITHUB_OUTPUT"))) {
+    Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "curseforge_file_id=$curseForgeFileId"
 }
 
 [pscustomobject]@{
     ProjectId = $ProjectId
     ProjectSlug = $Slug
     ProjectUrl = "https://www.curseforge.com/minecraft/mc-mods/$Slug"
-    FileId = $curseForgeFile.id
+    CurseForgeFileId = $curseForgeFileId
     VersionNumber = $Version
 } | ConvertTo-Json -Depth 4
