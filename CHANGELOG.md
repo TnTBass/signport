@@ -6,6 +6,10 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
+## 2.2.2+mc26.1.2 - 2026-05-28
+
+- Fixed anchor browser row clicks for anchors in other dimensions, including anchor names with spaces, and kept rows from rendering into the browser border.
+
 ## 2.2.1+mc26.1.2 - 2026-05-24
 
 - Removed repeated group prefixes from anchor browser rows; group names still appear in the section headers.

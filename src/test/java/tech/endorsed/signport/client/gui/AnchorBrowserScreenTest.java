@@ -13,6 +13,9 @@ class AnchorBrowserScreenTest {
     private static final ResourceKey<Level> OVERWORLD = ResourceKey.create(
             ResourceKey.createRegistryKey(Identifier.withDefaultNamespace("dimension")),
             Identifier.withDefaultNamespace("overworld"));
+    private static final ResourceKey<Level> THE_END = ResourceKey.create(
+            ResourceKey.createRegistryKey(Identifier.withDefaultNamespace("dimension")),
+            Identifier.withDefaultNamespace("the_end"));
 
     @Test
     void rowTitleUsesAnchorNameWithoutRepeatingVisibleGroupHeader() {
@@ -20,5 +23,26 @@ class AnchorBrowserScreenTest {
                 "FarLands", 1234L);
 
         assertEquals("DesertVillage389", AnchorBrowserScreen.rowTitle(anchor));
+    }
+
+    @Test
+    void rowClickCommandRunsSignPortTeleportInAnchorDimension() {
+        AnchorClient anchor = new AnchorClient("EndBase", new BlockPos(12, 70, -31), THE_END, "", 1234L);
+
+        assertEquals("execute in minecraft:the_end run sp tp \"EndBase\"", AnchorBrowserScreen.rowClickCommand(anchor));
+    }
+
+    @Test
+    void rowClickCommandQuotesAnchorNamesWithSpaces() {
+        AnchorClient anchor = new AnchorClient("End Base", new BlockPos(12, 70, -31), THE_END, "", 1234L);
+
+        assertEquals("execute in minecraft:the_end run sp tp \"End Base\"", AnchorBrowserScreen.rowClickCommand(anchor));
+    }
+
+    @Test
+    void maxScrollKeepsRowsAbovePanelBottomPadding() {
+        int panelHeight = AnchorBrowserScreen.panelHeightForContent(240, 220);
+
+        assertEquals(124, AnchorBrowserScreen.maxScrollForContent(220, panelHeight));
     }
 }

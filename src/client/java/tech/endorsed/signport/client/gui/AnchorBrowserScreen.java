@@ -35,6 +35,8 @@ public final class AnchorBrowserScreen extends Screen {
     private static final int ROW_HEIGHT = 22;
     private static final int GROUP_HEIGHT = 18;
     private static final int TAB_HEIGHT = 20;
+    private static final int CONTENT_TOP_OFFSET = 88;
+    private static final int CONTENT_BOTTOM_PADDING = 8;
 
     private final Screen parent;
     private EditBox searchBox;
@@ -119,12 +121,12 @@ public final class AnchorBrowserScreen extends Screen {
         graphics.centeredText(this.font, this.title, left + PANEL_WIDTH / 2, top + 10, 0xFFFFFFFF);
 
         drawTabs(graphics, left, top + 60);
-        int y = top + 88;
+        int y = top + CONTENT_TOP_OFFSET;
         if (SignPortClientState.anchors().isEmpty()) {
             graphics.centeredText(this.font, Component.literal("No synced anchors"), left + PANEL_WIDTH / 2, y + 24, 0xFFAAAAAA);
         } else {
-            int contentTop = top + 88;
-            int contentBottom = top + panelHeight();
+            int contentTop = contentTop();
+            int contentBottom = contentBottom();
             graphics.enableScissor(left, contentTop, left + PANEL_WIDTH, contentBottom);
             for (GroupHit group : groupHits) {
                 if (group.y() + GROUP_HEIGHT <= contentTop || group.y() >= contentBottom) continue;
@@ -228,8 +230,8 @@ public final class AnchorBrowserScreen extends Screen {
                 return true;
             }
         }
-        int contentTop = top() + 88;
-        int contentBottom = top() + panelHeight();
+        int contentTop = contentTop();
+        int contentBottom = contentBottom();
         if (mouseY >= contentTop && mouseY < contentBottom) {
             for (GroupHit group : groupHits) {
                 if (group.y() + GROUP_HEIGHT <= contentTop || group.y() >= contentBottom) continue;
@@ -247,7 +249,7 @@ public final class AnchorBrowserScreen extends Screen {
                                 row.anchor().dimension().identifier(),
                                 row.anchor().pos().getX(), row.anchor().pos().getY(), row.anchor().pos().getZ()));
                     } else {
-                        sendCommand("sp tp " + row.anchor().name());
+                        sendCommand(rowClickCommand(row.anchor()));
                     }
                     onClose();
                     return true;
@@ -340,11 +342,11 @@ public final class AnchorBrowserScreen extends Screen {
         int contentHeight = grouped.entrySet().stream()
                 .mapToInt(e -> GROUP_HEIGHT + (isCollapsed(e.getKey()) ? 0 : e.getValue().size() * ROW_HEIGHT))
                 .sum();
-        int nextPanelHeight = Math.max(170, Math.min(this.height - 48, 112 + contentHeight));
-        int newMaxScroll = Math.max(0, contentHeight - (nextPanelHeight - 88));
+        int nextPanelHeight = panelHeightForContent(this.height, contentHeight);
+        int newMaxScroll = maxScrollForContent(contentHeight, nextPanelHeight);
         scrollOffset = Math.max(0, Math.min(newMaxScroll, scrollOffset));
 
-        int y = top() + 88 - scrollOffset;
+        int y = top() + CONTENT_TOP_OFFSET - scrollOffset;
         List<GroupHit> groups = new ArrayList<>();
         List<RowHit> rows = new ArrayList<>();
         for (Map.Entry<String, List<AnchorClient>> entry : grouped.entrySet()) {
@@ -580,6 +582,14 @@ public final class AnchorBrowserScreen extends Screen {
         return anchor.name();
     }
 
+    static String rowClickCommand(AnchorClient anchor) {
+        return "execute in %s run sp tp %s".formatted(anchor.dimension().identifier(), commandString(anchor.name()));
+    }
+
+    private static String commandString(String value) {
+        return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+    }
+
     private String rowMeta(AnchorClient anchor) {
         BlockPos pos = anchor.pos();
         return "%d %d %d · %dm".formatted(pos.getX(), pos.getY(), pos.getZ(),
@@ -611,12 +621,28 @@ public final class AnchorBrowserScreen extends Screen {
     }
 
     private int panelHeight() {
-        return Math.max(170, Math.min(this.height - 48, 112 + rowHits.size() * ROW_HEIGHT + groupHits.size() * GROUP_HEIGHT));
+        return panelHeightForContent(this.height, rowHits.size() * ROW_HEIGHT + groupHits.size() * GROUP_HEIGHT);
+    }
+
+    private int contentTop() {
+        return top() + CONTENT_TOP_OFFSET;
+    }
+
+    private int contentBottom() {
+        return top() + panelHeight() - CONTENT_BOTTOM_PADDING;
     }
 
     private int maxScroll() {
         int contentHeight = rowHits.size() * ROW_HEIGHT + groupHits.size() * GROUP_HEIGHT;
-        return Math.max(0, contentHeight - (panelHeight() - 88));
+        return maxScrollForContent(contentHeight, panelHeight());
+    }
+
+    static int panelHeightForContent(int screenHeight, int contentHeight) {
+        return Math.max(170, Math.min(screenHeight - 48, 112 + contentHeight));
+    }
+
+    static int maxScrollForContent(int contentHeight, int panelHeight) {
+        return Math.max(0, contentHeight - (panelHeight - CONTENT_TOP_OFFSET - CONTENT_BOTTOM_PADDING));
     }
 
     private enum SortMode {

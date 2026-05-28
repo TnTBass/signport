@@ -93,7 +93,7 @@ public class AnchorCommand {
                 literal("signport")
                         .then(literal("tp")
                             .requires(SignPortPermissions::canUseTeleportCommand)
-                            .then(Commands.argument("name", StringArgumentType.word())
+                            .then(Commands.argument("name", StringArgumentType.string())
                                 .suggests(ANCHOR_NAME_SUGGESTIONS)
                                 .executes(context -> teleportAnchor(context.getSource(), StringArgumentType.getString(context, "name")))))
                         .then(literal("anchor")
