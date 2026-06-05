@@ -55,6 +55,8 @@ Players with `signport.sign.create` permission see a **SignPort Template** butto
 
 Client settings live in `config/signport-client.json`. `hudHintEnabled`, `browserKeybindEnabled`, `signEditorAutocompleteEnabled`, and `signTemplateButtonEnabled` all default to `true`; disabling the browser keybind takes effect after restarting the game. If Cloth Config is installed, the settings screen can be opened through the default-unbound `key.signport.config` keybind. ModMenu users also get a SignPort settings entry when ModMenu and Cloth Config are both present.
 
+The settings screen also shows passive SignPort client/server status when the server advertises the status payload. `Unknown`, `Disconnected`, and `Server not detected` are informational states; vanilla clients, vanilla servers, and servers without the status payload continue to work normally.
+
 ## Portal Signs
 
 A sign becomes a SignPort portal when one side uses this format:

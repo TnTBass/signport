@@ -6,6 +6,8 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
+- Added passive client/server SignPort status in the optional settings screen so SignPort-equipped clients can see the server's reported mod version alongside the client version for informational purposes.
+
 ## 2.2.2+mc26.1.2 - 2026-05-28
 
 - Fixed anchor browser row clicks for anchors in other dimensions, including anchor names with spaces, and kept rows from rendering into the browser border.
