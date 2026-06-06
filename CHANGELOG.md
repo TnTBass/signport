@@ -6,7 +6,9 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
-- Added passive client/server SignPort status in the optional settings screen so SignPort-equipped clients can see the server's reported mod version alongside the client version for informational purposes.
+## 2.2.3+mc26.1.2 - 2026-06-06
+
+- Added [ModStatusKit](https://github.com/TnTBass/ModStatusKit)-powered passive client/server SignPort status as a compact top-right indicator in the optional settings screen, with hover details for the client and server versions. Both client and server must update to this build for the status payload channel to be detected.
 
 ## 2.2.2+mc26.1.2 - 2026-05-28
 

@@ -1,6 +1,7 @@
 package tech.endorsed.signport.status;
 
 import net.fabricmc.loader.api.FabricLoader;
+import tech.endorsed.signport.BuildInfo;
 import tech.endorsed.signport.SignPort;
 import tech.endorsed.signport.internal.modstatus.ModStatusClientState;
 import tech.endorsed.signport.internal.modstatus.ModStatusConfig;
@@ -12,7 +13,7 @@ import tech.endorsed.signport.internal.modstatus.VersionMismatchSeverity;
 import tech.endorsed.signport.internal.modstatus.VersionStatus;
 
 public final class SignPortStatus {
-    public static final String SERVER_VERSION_CHANNEL_PATH = "status_version";
+    public static final String SERVER_VERSION_CHANNEL_PATH = "server_version";
     public static final int SERVER_DETECTION_GRACE_TICKS = 100;
 
     private static final String UPDATE_URL = "https://github.com/TnTBass/signport";
@@ -81,21 +82,11 @@ public final class SignPortStatus {
     }
 
     public static String versionWithBuild(String version, String build) {
-        String normalizedVersion = version == null || version.isBlank() ? "Unknown" : version.trim();
-        if (build == null || build.isBlank()) {
-            return normalizedVersion;
-        }
-        return normalizedVersion + " (" + build.trim() + ")";
+        return SignPortStatusDisplay.versionWithBuild(version, build);
     }
 
     public static int toneColor(StatusTone tone) {
-        return switch (tone) {
-            case GREEN -> 0x55AA55;
-            case TEAL -> 0x55AAAA;
-            case ORANGE -> 0xFFAA00;
-            case RED -> 0xFF5555;
-            case GRAY -> 0xAAAAAA;
-        };
+        return SignPortStatusDisplay.toneRgb(tone);
     }
 
     private static ModStatusConfig buildConfig() {
@@ -103,7 +94,7 @@ public final class SignPortStatus {
                 .modId(SignPort.MOD_ID)
                 .displayName("SignPort")
                 .clientVersion(resolveVersion())
-                .clientBuild(null)
+                .clientBuild(BuildInfo.BUILD_NUMBER)
                 .updateUrl(UPDATE_URL)
                 .payloadChannel(SignPort.MOD_ID, SERVER_VERSION_CHANNEL_PATH)
                 .messages(passiveMessages())

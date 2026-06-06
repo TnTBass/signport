@@ -8,13 +8,23 @@ import tech.endorsed.signport.status.SignPortStatus;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class StatusPayloadsTest {
     @Test
     void statusPayloadUsesDedicatedSignPortChannel() {
-        assertEquals("signport:status_version", StatusPayloads.VERSION_TYPE.id().toString());
+        assertEquals("signport:server_version", StatusPayloads.VERSION_TYPE.id().toString());
+        assertEquals("signport:server_version_request", StatusPayloads.REQUEST_TYPE.id().toString());
+    }
+
+    @Test
+    void statusPayloadCanValidateMskChannelName() {
+        assertTrue(StatusPayloads.isVersionChannel("signport:server_version"));
+        assertFalse(StatusPayloads.isVersionChannel("signport:status_version"));
+        assertFalse(StatusPayloads.isVersionChannel(null));
     }
 
     @Test
@@ -30,6 +40,22 @@ class StatusPayloadsTest {
             assertArrayEquals(value, decoded.value());
             assertEquals(StatusPayloads.VERSION_TYPE, decoded.type());
             assertTrue(decoded.value().length > 0);
+            assertEquals(SignPortStatus.decodeServerStatus(value).serverVersionInfo(), decoded.serverStatus().serverVersionInfo());
+        } finally {
+            buf.release();
+        }
+    }
+
+    @Test
+    void serverVersionRequestPayloadCodecRoundTripsEmptyPayload() {
+        RegistryFriendlyByteBuf buf = new RegistryFriendlyByteBuf(Unpooled.buffer(), RegistryAccess.EMPTY);
+
+        try {
+            StatusPayloads.REQUEST_CODEC.encode(buf, StatusPayloads.ServerVersionRequest.INSTANCE);
+            StatusPayloads.ServerVersionRequest decoded = StatusPayloads.REQUEST_CODEC.decode(buf);
+
+            assertEquals(0, buf.readableBytes());
+            assertEquals(StatusPayloads.REQUEST_TYPE, decoded.type());
         } finally {
             buf.release();
         }
@@ -47,5 +73,58 @@ class StatusPayloadsTest {
         } finally {
             buf.release();
         }
+    }
+
+    @Test
+    void statusNetworkingSendsOnlyWhenServerVersionPayloadIsSupported() {
+        byte[][] sent = new byte[1][];
+
+        assertFalse(SignPortStatusNetworking.sendConfiguredServerVersionIfSupported(
+                channel -> false,
+                (channel, payload) -> sent[0] = payload));
+        assertNull(sent[0]);
+
+        assertTrue(SignPortStatusNetworking.sendConfiguredServerVersionIfSupported(
+                channel -> true,
+                (channel, payload) -> sent[0] = payload));
+        assertEquals(SignPortStatus.config().payloadChannel(), StatusPayloads.VERSION_TYPE.id().toString());
+        assertEquals(SignPortStatus.config().clientVersionInfo(), SignPortStatus.decodeServerStatus(sent[0]).serverVersionInfo());
+    }
+
+    @Test
+    void clientRequestsServerVersionOnlyWhenRequestChannelIsReadyAndStatusMissing() {
+        assertFalse(SignPortStatusNetworking.shouldRequestServerVersion(false, true, false, 0, -1));
+        assertFalse(SignPortStatusNetworking.shouldRequestServerVersion(true, false, false, 0, -1));
+        assertFalse(SignPortStatusNetworking.shouldRequestServerVersion(true, true, true, 0, -1));
+        assertFalse(SignPortStatusNetworking.shouldRequestServerVersion(true, true, false, 20, 0));
+        assertTrue(SignPortStatusNetworking.shouldRequestServerVersion(true, true, false, 0, -1));
+        assertTrue(SignPortStatusNetworking.shouldRequestServerVersion(true, true, false, 40, 0));
+    }
+
+    @Test
+    void clientKeepsRequestingServerVersionAfterNotDetectedTimeoutUntilPayloadArrives() {
+        assertTrue(SignPortStatusNetworking.shouldRequestServerVersion(
+                true,
+                true,
+                false,
+                120,
+                SignPortStatusNetworking.NO_SERVER_VERSION_REQUEST_TICK));
+        assertFalse(SignPortStatusNetworking.shouldRequestServerVersion(true, true, true, 120, 80));
+    }
+
+    @Test
+    void resetStatusRequestTickAllowsImmediateRequestAfterReconnect() {
+        assertTrue(SignPortStatusNetworking.shouldRequestServerVersion(
+                true,
+                true,
+                false,
+                0,
+                SignPortStatusNetworking.NO_SERVER_VERSION_REQUEST_TICK));
+    }
+
+    @Test
+    void serverJoinPushAttemptsStatusWhenPlayerIsPresent() {
+        assertFalse(SignPortStatusNetworking.shouldSendServerVersionOnJoin(false));
+        assertTrue(SignPortStatusNetworking.shouldSendServerVersionOnJoin(true));
     }
 }

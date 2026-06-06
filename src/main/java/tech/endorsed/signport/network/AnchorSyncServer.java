@@ -1,7 +1,6 @@
 package tech.endorsed.signport.network;
 
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
@@ -10,7 +9,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import tech.endorsed.signport.bluemap.BlueMapIntegration;
 import tech.endorsed.signport.permission.SignPortPermissions;
-import tech.endorsed.signport.status.SignPortStatus;
 import tech.endorsed.signport.world.Anchor;
 import tech.endorsed.signport.world.AnchorCreation;
 import tech.endorsed.signport.world.AnchorState;
@@ -24,21 +22,13 @@ public final class AnchorSyncServer {
     public static void register() {
         AnchorSyncPayloads.registerClientbound();
         AnchorSyncPayloads.registerServerbound();
-        StatusPayloads.registerClientbound();
 
         ServerPlayNetworking.registerGlobalReceiver(AnchorSyncPayloads.READY_TYPE, (payload, context) ->
                 context.server().execute(() -> sendFull(context.player())));
         ServerPlayNetworking.registerGlobalReceiver(AnchorSyncPayloads.CREATE_ANCHOR_REQUEST_TYPE, (payload, context) ->
                 context.server().execute(() -> handleCreateAnchor(payload, context.player())));
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
-                sendStatus(handler.player));
         ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) ->
                 sendFull(newPlayer));
-    }
-
-    public static void sendStatus(ServerPlayer player) {
-        if (!ServerPlayNetworking.canSend(player, StatusPayloads.VERSION_TYPE)) return;
-        ServerPlayNetworking.send(player, new StatusPayloads.ServerVersionPayload(SignPortStatus.encodeServerStatus()));
     }
 
     public static void sendFull(ServerPlayer player) {
@@ -55,7 +45,6 @@ public final class AnchorSyncServer {
     public static void sendFullToAll(MinecraftServer server) {
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             sendFull(player);
-            sendStatus(player);
         }
     }
 

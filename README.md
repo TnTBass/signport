@@ -53,9 +53,9 @@ The same SignPort jar also includes an optional Fabric client mod. Vanilla clien
 
 Players with `signport.sign.create` permission see a **SignPort Template** button while editing a sign on a SignPort-equipped server. The form accepts a target anchor, an optional dimension from the synced anchor cache, and an optional label for line 1, then fills the sign as `[sp]` plus the selected anchor details. Players can still edit the sign lines manually before pressing Done. The button is hidden when permission sync is unavailable, when the server reports the player cannot create portal signs, or when `signTemplateButtonEnabled` is disabled.
 
-Client settings live in `config/signport-client.json`. `hudHintEnabled`, `browserKeybindEnabled`, `signEditorAutocompleteEnabled`, and `signTemplateButtonEnabled` all default to `true`; disabling the browser keybind takes effect after restarting the game. If Cloth Config is installed, the settings screen can be opened through the default-unbound `key.signport.config` keybind. ModMenu users also get a SignPort settings entry when ModMenu and Cloth Config are both present.
+Client settings live in `config/signport-client.json`. `hudHintEnabled`, `browserKeybindEnabled`, `signEditorAutocompleteEnabled`, and `signTemplateButtonEnabled` all default to `true`; disabling the browser keybind takes effect after restarting the game. The settings screen can be opened through the default-unbound `key.signport.config` keybind. ModMenu users also get a SignPort settings entry when ModMenu is present.
 
-The settings screen also shows passive SignPort client/server status when the server advertises the status payload. `Unknown`, `Disconnected`, and `Server not detected` are informational states; vanilla clients, vanilla servers, and servers without the status payload continue to work normally.
+The settings screen also shows passive SignPort client/server status when the server supports the SignPort status payloads, using a compact colored square indicator in the top-right corner. Hovering the indicator shows the client/server status details. `Unknown`, `Disconnected`, and `Server not detected` are informational states; vanilla clients, vanilla servers, and servers without the status payloads continue to work normally.
 
 ## Portal Signs
 

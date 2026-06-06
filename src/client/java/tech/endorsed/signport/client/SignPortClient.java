@@ -10,7 +10,6 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.KeyMapping.Category;
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import tech.endorsed.signport.SignPort;
 import tech.endorsed.signport.client.config.ConfigScreenFactory;
@@ -18,6 +17,7 @@ import tech.endorsed.signport.client.config.SignPortClientConfig;
 import tech.endorsed.signport.client.gui.AnchorBrowserScreen;
 import tech.endorsed.signport.client.hud.PortSignHudHint;
 import tech.endorsed.signport.network.AnchorSyncPayloads;
+import tech.endorsed.signport.network.SignPortStatusNetworking;
 import tech.endorsed.signport.network.StatusPayloads;
 import tech.endorsed.signport.status.SignPortStatus;
 
@@ -28,6 +28,7 @@ public class SignPortClient implements ClientModInitializer {
     private static KeyMapping browserKey;
     private static boolean initialSyncRequested = false;
     private static boolean statusPayloadReceived = false;
+    private static int lastStatusRequestTick = SignPortStatusNetworking.NO_SERVER_VERSION_REQUEST_TICK;
     private static boolean statusCleanedUp = true;
     private static int ticksSinceJoin = 0;
 
@@ -37,6 +38,7 @@ public class SignPortClient implements ClientModInitializer {
         AnchorSyncPayloads.registerClientbound();
         AnchorSyncPayloads.registerServerbound();
         StatusPayloads.registerClientbound();
+        StatusPayloads.registerServerbound();
 
         ClientPlayNetworking.registerGlobalReceiver(AnchorSyncPayloads.FULL_TYPE, (payload, context) ->
                 context.client().execute(() -> SignPortClientState.applyFull(payload)));
@@ -56,6 +58,7 @@ public class SignPortClient implements ClientModInitializer {
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             SignPortStatus.onClientJoin();
             statusPayloadReceived = false;
+            lastStatusRequestTick = SignPortStatusNetworking.NO_SERVER_VERSION_REQUEST_TICK;
             statusCleanedUp = false;
             ticksSinceJoin = 0;
         });
@@ -63,6 +66,7 @@ public class SignPortClient implements ClientModInitializer {
             SignPortClientState.clear();
             cleanupStatus();
             initialSyncRequested = false;
+            lastStatusRequestTick = SignPortStatusNetworking.NO_SERVER_VERSION_REQUEST_TICK;
         });
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> cleanupStatus());
 
@@ -82,6 +86,7 @@ public class SignPortClient implements ClientModInitializer {
     }
 
     private static void tick(Minecraft client) {
+        requestServerVersionWhenReady(client);
         updateStatusDetection(client);
         requestInitialSyncWhenReady(client);
         while (configKey.consumeClick()) {
@@ -98,9 +103,7 @@ public class SignPortClient implements ClientModInitializer {
     private static void updateStatusDetection(Minecraft client) {
         if (client.player == null || statusPayloadReceived) return;
         if (SignPortStatus.shouldMarkServerNotDetected(true, false, ticksSinceJoin)) {
-            if (SignPortStatus.clientState().markServerNotDetectedIfUnknown()) {
-                statusPayloadReceived = true;
-            }
+            SignPortStatus.clientState().markServerNotDetectedIfUnknown();
         }
         ticksSinceJoin++;
     }
@@ -109,8 +112,24 @@ public class SignPortClient implements ClientModInitializer {
         if (statusCleanedUp) return;
         SignPortStatus.onClientDisconnect();
         statusPayloadReceived = false;
+        lastStatusRequestTick = SignPortStatusNetworking.NO_SERVER_VERSION_REQUEST_TICK;
         statusCleanedUp = true;
         ticksSinceJoin = 0;
+    }
+
+    private static void requestServerVersionWhenReady(Minecraft client) {
+        boolean playerPresent = client.player != null;
+        boolean canSendRequest = playerPresent && ClientPlayNetworking.canSend(StatusPayloads.REQUEST_TYPE);
+        if (SignPortStatusNetworking.shouldRequestServerVersion(
+                playerPresent,
+                canSendRequest,
+                statusPayloadReceived,
+                ticksSinceJoin,
+                lastStatusRequestTick
+        )) {
+            ClientPlayNetworking.send(StatusPayloads.ServerVersionRequest.INSTANCE);
+            lastStatusRequestTick = ticksSinceJoin;
+        }
     }
 
     private static void requestInitialSyncWhenReady(Minecraft client) {
@@ -134,11 +153,6 @@ public class SignPortClient implements ClientModInitializer {
 
     public static void openConfigScreen(Minecraft client) {
         if (client.player == null) return;
-        if (!ConfigScreenFactory.isAvailable()) {
-            client.player.sendSystemMessage(Component.literal(
-                    "SignPort: install Cloth Config to use the settings screen; config/signport-client.json can be edited directly."));
-            return;
-        }
         client.setScreen(ConfigScreenFactory.create(client.screen));
     }
 }
