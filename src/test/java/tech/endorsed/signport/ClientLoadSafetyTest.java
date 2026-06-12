@@ -19,12 +19,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class ClientLoadSafetyTest {
     @Test
     void modMetadataLoadsExpectedEntrypointsOnly() throws IOException {
-        String metadata = Files.readString(Path.of("src/main/resources/fabric.mod.json"));
+        String metadata = Files.readString(Path.of("src/fabric/resources/fabric.mod.json"));
 
         Map<String, List<String>> expected = new LinkedHashMap<>();
-        expected.put("main", List.of("tech.endorsed.signport.SignPort"));
-        expected.put("client", List.of("tech.endorsed.signport.client.SignPortClient"));
-        expected.put("modmenu", List.of("tech.endorsed.signport.client.config.SignPortModMenuApi"));
+        expected.put("main", List.of("tech.endorsed.signport.fabric.SignPortFabric"));
+        expected.put("client", List.of("tech.endorsed.signport.fabric.client.SignPortFabricClient"));
+        expected.put("modmenu", List.of("tech.endorsed.signport.fabric.client.config.SignPortModMenuApi"));
 
         assertEquals(expected, parseEntrypoints(metadata),
                 "fabric.mod.json entrypoints drift; update this test only when intentionally changing the loaded entrypoint set.");
@@ -32,7 +32,7 @@ class ClientLoadSafetyTest {
 
     @Test
     void mixinMetadataLoadsExactlyTheExpectedClientMixins() throws IOException {
-        String metadata = Files.readString(Path.of("src/main/resources/signport.mixins.json"));
+        String metadata = Files.readString(Path.of("src/fabric/resources/signport.mixins.json"));
 
         Set<String> expected = new LinkedHashSet<>(Arrays.asList(
                 "AbstractSignEditScreenMixin",

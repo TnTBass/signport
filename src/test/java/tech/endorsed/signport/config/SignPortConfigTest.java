@@ -23,7 +23,7 @@ class SignPortConfigTest {
     void missingConfigCreatesDefaults() {
         Path path = tempDir.resolve(SignPortConfig.FILE_NAME);
 
-        SignPortConfig.Values config = SignPortConfig.load(path, LOGGER);
+        SignPortConfig.Values config = SignPortConfig.loadValues(path, LOGGER);
 
         assertEquals(SignPortConfig.Values.defaults(), config);
         assertTrue(Files.exists(path));
@@ -45,7 +45,7 @@ class SignPortConfigTest {
                 }
                 """);
 
-        SignPortConfig.Values config = SignPortConfig.load(path, LOGGER);
+        SignPortConfig.Values config = SignPortConfig.loadValues(path, LOGGER);
 
         assertFalse(config.teleportCommandDefault());
         assertFalse(config.signUseDefault());
@@ -73,7 +73,7 @@ class SignPortConfigTest {
                 }
                 """);
 
-        SignPortConfig.Values config = SignPortConfig.load(path, LOGGER);
+        SignPortConfig.Values config = SignPortConfig.loadValues(path, LOGGER);
 
         assertFalse(config.teleportCommandDefault());
         assertTrue(config.signUseDefault());
@@ -105,7 +105,7 @@ class SignPortConfigTest {
         Path path = tempDir.resolve(SignPortConfig.FILE_NAME);
         Files.writeString(path, "{");
 
-        SignPortConfig.Values config = SignPortConfig.load(path, LOGGER);
+        SignPortConfig.Values config = SignPortConfig.loadValues(path, LOGGER);
 
         assertEquals(SignPortConfig.Values.defaults(), config);
     }

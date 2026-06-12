@@ -86,7 +86,13 @@ loom {
 
 sourceSets {
 	main {
+		java.setSrcDirs(["src/common/java", "src/fabric/java"])
 		java.srcDir generatedBuildInfoDir
+		resources.setSrcDirs(["src/fabric/resources"])
+	}
+	client {
+		java.setSrcDirs(["src/commonClient/java", "src/fabricClient/java"])
+		resources.setSrcDirs(["src/fabricClient/resources"])
 	}
 }
 
@@ -283,7 +289,7 @@ tasks.register("checkUnitTestCompanions") {
 	description = "Requires unit-test companions for pure helper/state classes."
 
 	doLast {
-		def requiredTestFiles = fileTree("src/main/java").matching {
+		def requiredTestFiles = fileTree("src/common/java").matching {
 			include "**/*Config.java"
 			include "**/*Format.java"
 			include "**/*Resolver.java"
@@ -291,7 +297,7 @@ tasks.register("checkUnitTestCompanions") {
 		}.files.collect { mainFile ->
 			def relativePath = projectDir.toPath().relativize(mainFile.toPath()).toString().replace(File.separatorChar, '/' as char)
 			def testPath = relativePath
-					.replace("src/main/java/", "src/test/java/")
+					.replace("src/common/java/", "src/test/java/")
 					.replace(".java", "Test.java")
 			file(testPath)
 		}
@@ -310,13 +316,13 @@ tasks.register("checkSourceHygiene") {
 	description = "Checks source patterns that should not regress silently."
 
 	doLast {
-		def interactionMixin = file("src/main/java/tech/endorsed/signport/mixin/ServerPlayerInteractionManagerMixin.java").text
+		def interactionMixin = file("src/common/java/tech/endorsed/signport/mixin/ServerPlayerInteractionManagerMixin.java").text
 		if (interactionMixin.contains("PortSignEntity.isValidPortSign(")
 				|| interactionMixin.contains("teleportToDestination(player, world,")) {
 			throw new GradleException("ServerPlayerInteractionManagerMixin should resolve a portal destination once and reuse it.")
 		}
 
-		def signEvents = file("src/main/java/tech/endorsed/signport/events/SignEvents.java").text
+		def signEvents = file("src/fabric/java/tech/endorsed/signport/fabric/events/FabricSignEvents.java").text
 		if (signEvents.contains("isValidPortSign(world")) {
 			throw new GradleException("SignEvents break protection must check portal markers, not only currently valid anchors.")
 		}
@@ -396,6 +402,69 @@ tasks.register("checkSourceHygiene") {
 	}
 }
 
+tasks.register("checkCommonSourceSetsLoaderNeutral") {
+	group = "verification"
+	description = "Fails when common source roots import loader/provider-specific APIs."
+
+	doLast {
+		def forbidden = ~/^\s*import\s+(net\.fabricmc|com\.terraformersmc\.modmenu|me\.lucko\.fabric|net\.luckperms|me\.lucko\.luckperms|net\.neoforged|de\.bluecolored)\./
+		def roots = [file("src/common"), file("src/commonClient")].findAll { it.exists() }
+		def matches = []
+		roots.each { root ->
+			fileTree(root).matching { include "**/*.java" }.files.each { sourceFile ->
+				sourceFile.eachLine { line, number ->
+					if ((line =~ forbidden).find()) {
+						matches << "${projectDir.toPath().relativize(sourceFile.toPath())}:${number}: ${line}"
+					}
+				}
+			}
+		}
+		if (!matches.isEmpty()) {
+			throw new GradleException("Common source roots must stay loader-neutral:\n" + matches.join("\n"))
+		}
+		logger.lifecycle("Common source-set loader-neutrality gate passed.")
+	}
+}
+
+tasks.register("checkFabricJarResources") {
+	group = "verification"
+	description = "Fails when Fabric artifacts contain NeoForge metadata."
+	dependsOn tasks.named("jar")
+
+	doLast {
+		def jarFile = tasks.named("jar").get().archiveFile.get().asFile
+		def entries = zipTree(jarFile).matching {
+			include "META-INF/neoforge.mods.toml"
+		}.files
+		if (!entries.isEmpty()) {
+			throw new GradleException("Fabric jar must not contain META-INF/neoforge.mods.toml.")
+		}
+		logger.lifecycle("Fabric jar resource gate passed.")
+	}
+}
+
+tasks.register("checkNeoForgeJarResources") {
+	group = "verification"
+	description = "Fails when NeoForge artifacts contain Fabric metadata once NeoForge exists."
+
+	onlyIf {
+		project.findProject(":neoforge") != null
+	}
+
+	doLast {
+		def neoForgeProject = project(":neoforge")
+		def jarTask = neoForgeProject.tasks.named("jar").get()
+		def jarFile = jarTask.archiveFile.get().asFile
+		def entries = neoForgeProject.zipTree(jarFile).matching {
+			include "fabric.mod.json"
+		}.files
+		if (!entries.isEmpty()) {
+			throw new GradleException("NeoForge jar must not contain fabric.mod.json.")
+		}
+		logger.lifecycle("NeoForge jar resource gate passed.")
+	}
+}
+
 tasks.register("checkReleasePublishingSources") {
 	group = "verification"
 	description = "Checks release publishing scripts and workflows for marketplace upload safeguards."
@@ -413,7 +482,7 @@ tasks.register("checkReleasePublishingSources") {
 }
 
 tasks.named("check") {
-	dependsOn("checkChangelog", "checkWrapperChecksum", "checkUnitTestCompanions", "checkSourceHygiene", "checkReleasePublishingSources")
+	dependsOn("checkChangelog", "checkWrapperChecksum", "checkUnitTestCompanions", "checkSourceHygiene", "checkCommonSourceSetsLoaderNeutral", "checkFabricJarResources", "checkNeoForgeJarResources", "checkReleasePublishingSources")
 }
 
 tasks.register("releaseReminder") {
