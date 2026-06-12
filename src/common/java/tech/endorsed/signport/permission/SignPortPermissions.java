@@ -8,14 +8,14 @@ import net.minecraft.world.entity.player.Player;
 import tech.endorsed.signport.config.SignPortConfig;
 
 public final class SignPortPermissions {
-	public static final String ANCHOR_CREATE = "signport.anchor.create";
-	public static final String ANCHOR_DELETE = "signport.anchor.delete";
-	public static final String ANCHOR_LIST = "signport.anchor.list";
-	public static final String TELEPORT_COMMAND = "signport.teleport.command";
-	public static final String SIGN_CREATE = "signport.sign.create";
-	public static final String SIGN_EDIT = "signport.sign.edit";
-	public static final String SIGN_BREAK = "signport.sign.break";
-	public static final String SIGN_USE = "signport.sign.use";
+	public static final String ANCHOR_CREATE = SignPortPermissionPolicy.ANCHOR_CREATE;
+	public static final String ANCHOR_DELETE = SignPortPermissionPolicy.ANCHOR_DELETE;
+	public static final String ANCHOR_LIST = SignPortPermissionPolicy.ANCHOR_LIST;
+	public static final String TELEPORT_COMMAND = SignPortPermissionPolicy.TELEPORT_COMMAND;
+	public static final String SIGN_CREATE = SignPortPermissionPolicy.SIGN_CREATE;
+	public static final String SIGN_EDIT = SignPortPermissionPolicy.SIGN_EDIT;
+	public static final String SIGN_BREAK = SignPortPermissionPolicy.SIGN_BREAK;
+	public static final String SIGN_USE = SignPortPermissionPolicy.SIGN_USE;
 	private static volatile Provider provider = Provider.VANILLA;
 
 	private SignPortPermissions() {

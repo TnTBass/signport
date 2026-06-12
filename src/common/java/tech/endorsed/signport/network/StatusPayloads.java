@@ -10,11 +10,14 @@ import tech.endorsed.signport.status.SignPortStatus;
 
 public final class StatusPayloads {
     private static final int MAX_STATUS_PAYLOAD_BYTES = 512;
+    public static final Identifier VERSION_ID =
+            Identifier.fromNamespaceAndPath(SignPort.MOD_ID, SignPortStatus.SERVER_VERSION_CHANNEL_PATH);
+    public static final Identifier REQUEST_ID = id("server_version_request");
 
     public static final CustomPacketPayload.Type<ServerVersionPayload> VERSION_TYPE =
-            new CustomPacketPayload.Type<>(Identifier.fromNamespaceAndPath(SignPort.MOD_ID, SignPortStatus.SERVER_VERSION_CHANNEL_PATH));
+            new CustomPacketPayload.Type<>(VERSION_ID);
     public static final CustomPacketPayload.Type<ServerVersionRequest> REQUEST_TYPE =
-            new CustomPacketPayload.Type<>(id("server_version_request"));
+            new CustomPacketPayload.Type<>(REQUEST_ID);
 
     public static final StreamCodec<RegistryFriendlyByteBuf, ServerVersionPayload> VERSION_CODEC = StreamCodec.of(
             StatusPayloads::writeServerVersion,

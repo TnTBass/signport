@@ -16,8 +16,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class StatusPayloadsTest {
     @Test
     void statusPayloadUsesDedicatedSignPortChannel() {
-        assertEquals("signport:server_version", StatusPayloads.VERSION_TYPE.id().toString());
-        assertEquals("signport:server_version_request", StatusPayloads.REQUEST_TYPE.id().toString());
+        assertEquals("signport:server_version", StatusPayloads.VERSION_ID.toString());
+        assertEquals("signport:server_version_request", StatusPayloads.REQUEST_ID.toString());
     }
 
     @Test

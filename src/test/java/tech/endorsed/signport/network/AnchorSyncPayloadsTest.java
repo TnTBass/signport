@@ -11,6 +11,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AnchorSyncPayloadsTest {
     @Test
+    void payloadContractsExposeStableChannelIds() {
+        assertEquals("signport:anchor_sync_full", AnchorSyncPayloads.FULL_ID.toString());
+        assertEquals("signport:anchor_sync_delta", AnchorSyncPayloads.DELTA_ID.toString());
+        assertEquals("signport:anchor_sync_ready", AnchorSyncPayloads.READY_ID.toString());
+        assertEquals("signport:anchor_create_request", AnchorSyncPayloads.CREATE_ANCHOR_REQUEST_ID.toString());
+        assertEquals("signport:anchor_create_response", AnchorSyncPayloads.CREATE_ANCHOR_RESPONSE_ID.toString());
+    }
+
+    @Test
     void initialSyncRequestWaitsForClientPlayerAndServerSupport() {
         assertFalse(AnchorSyncPayloads.shouldRequestInitialSync(false, true, false));
         assertFalse(AnchorSyncPayloads.shouldRequestInitialSync(true, false, false));

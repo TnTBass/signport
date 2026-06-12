@@ -16,16 +16,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class AnchorSyncPayloads {
+    public static final Identifier FULL_ID = id("anchor_sync_full");
+    public static final Identifier DELTA_ID = id("anchor_sync_delta");
+    public static final Identifier READY_ID = id("anchor_sync_ready");
+    public static final Identifier CREATE_ANCHOR_REQUEST_ID = id("anchor_create_request");
+    public static final Identifier CREATE_ANCHOR_RESPONSE_ID = id("anchor_create_response");
+
     public static final CustomPacketPayload.Type<Full> FULL_TYPE =
-            new CustomPacketPayload.Type<>(id("anchor_sync_full"));
+            new CustomPacketPayload.Type<>(FULL_ID);
     public static final CustomPacketPayload.Type<Delta> DELTA_TYPE =
-            new CustomPacketPayload.Type<>(id("anchor_sync_delta"));
+            new CustomPacketPayload.Type<>(DELTA_ID);
     public static final CustomPacketPayload.Type<Ready> READY_TYPE =
-            new CustomPacketPayload.Type<>(id("anchor_sync_ready"));
+            new CustomPacketPayload.Type<>(READY_ID);
     public static final CustomPacketPayload.Type<CreateAnchorRequest> CREATE_ANCHOR_REQUEST_TYPE =
-            new CustomPacketPayload.Type<>(id("anchor_create_request"));
+            new CustomPacketPayload.Type<>(CREATE_ANCHOR_REQUEST_ID);
     public static final CustomPacketPayload.Type<CreateAnchorResponse> CREATE_ANCHOR_RESPONSE_TYPE =
-            new CustomPacketPayload.Type<>(id("anchor_create_response"));
+            new CustomPacketPayload.Type<>(CREATE_ANCHOR_RESPONSE_ID);
 
     public static final StreamCodec<RegistryFriendlyByteBuf, Full> FULL_CODEC = StreamCodec.of(
             AnchorSyncPayloads::writeFull,
