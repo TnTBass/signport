@@ -4,6 +4,7 @@ Internal repo, build, workflow, and release-process changes are documented here.
 
 ## Unreleased
 
+- Wired NeoForge portal sign use/break events and enabled the shared sign create/edit protection mixin for the sign-event adapter slice, with source-contract tests until a NeoForge runtime harness is added.
 - Wired the first NeoForge runtime bootstrap slice for config/version setup, command/lifecycle hooks, and native permission node registration.
 - Added the initial NeoForge source-root, metadata, and build skeleton for the multiloader baseline.
 - Added common permission policy and payload channel contract seams for the multiloader boundary.

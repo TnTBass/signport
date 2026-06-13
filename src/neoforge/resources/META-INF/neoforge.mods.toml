@@ -28,3 +28,6 @@ side="BOTH"
 
 [[features.signport]]
 javaVersion="[25,)"
+
+[[mixins]]
+config="signport.neoforge.mixins.json"

@@ -1,0 +1,12 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "tech.endorsed.signport.mixin",
+	"compatibilityLevel": "JAVA_17",
+	"mixins": [
+		"SignBlockEntityMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

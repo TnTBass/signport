@@ -12,6 +12,7 @@ import tech.endorsed.signport.bluemap.BlueMapIntegration;
 import tech.endorsed.signport.command.AnchorCommand;
 import tech.endorsed.signport.config.SignPortConfig;
 import tech.endorsed.signport.network.AnchorSyncServer;
+import tech.endorsed.signport.neoforge.events.NeoForgeSignEvents;
 import tech.endorsed.signport.neoforge.permission.NeoForgeSignPortPermissions;
 import tech.endorsed.signport.permission.SignPortPermissions;
 import tech.endorsed.signport.SignPort;
@@ -31,6 +32,7 @@ public final class SignPortNeoForge {
         BlueMapIntegration.install(BlueMapIntegration.Adapter.NO_OP);
         AnchorSyncServer.install(AnchorSyncServer.Adapter.NO_OP);
 
+        NeoForgeSignEvents.register();
         NeoForge.EVENT_BUS.addListener(NeoForgeSignPortPermissions::registerNodes);
         NeoForge.EVENT_BUS.addListener(SignPortNeoForge::registerCommands);
         NeoForge.EVENT_BUS.addListener(SignPortNeoForge::serverStarted);
