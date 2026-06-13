@@ -432,7 +432,7 @@ tasks.register("checkNeoForgeImportsScoped") {
 
 	doLast {
 		def forbidden = ~/^\s*import\s+net\.neoforged\./
-		def allowedPrefixes = ["src/neoforge/", "src/neoforgeClient/"]
+		def allowedPrefixes = ["src/neoforge/", "src/neoforgeClient/", "src/neoforgeTest/"]
 		def matches = []
 		fileTree("src").matching { include "**/*.java" }.files.each { sourceFile ->
 			def relativePath = projectDir.toPath().relativize(sourceFile.toPath()).toString().replace(File.separatorChar, '/' as char)
