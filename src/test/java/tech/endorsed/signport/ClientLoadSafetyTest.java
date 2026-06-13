@@ -15,6 +15,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ClientLoadSafetyTest {
     @Test
@@ -39,6 +41,35 @@ class ClientLoadSafetyTest {
                 "ScreenAccessor"));
         assertEquals(expected, parseStringArray(metadata, "client"),
                 "Client mixin allow-list drift; update this test only when intentionally changing the loaded client mixin set.");
+    }
+
+    @Test
+    void neoForgeMetadataDeclaresOnlyNeoForgeEntrypoints() throws IOException {
+        String metadata = Files.readString(Path.of("src/neoforge/resources/META-INF/neoforge.mods.toml"));
+
+        assertTrue(metadata.contains("modLoader=\"javafml\""));
+        assertTrue(metadata.contains("modId=\"signport\""));
+        assertFalse(metadata.contains("entrypoint="));
+        assertFalse(metadata.contains("clientEntrypoint="));
+        assertFalse(metadata.contains("tech.endorsed.signport.fabric"));
+        assertFalse(Files.exists(Path.of("src/neoforge/resources/fabric.mod.json")));
+    }
+
+    @Test
+    void neoForgeEntrypointsUseLoaderAnnotationAndCommonModId() throws IOException {
+        String server = Files.readString(Path.of("src/neoforge/java/tech/endorsed/signport/neoforge/SignPortNeoForge.java"));
+        String client = Files.readString(Path.of("src/neoforgeClient/java/tech/endorsed/signport/neoforge/client/SignPortNeoForgeClient.java"));
+
+        assertTrue(server.contains("import net.neoforged.fml.common.Mod;"));
+        assertTrue(server.contains("@Mod(SignPort.MOD_ID)"));
+        assertTrue(server.contains("import tech.endorsed.signport.SignPort;"));
+        assertFalse(server.contains("net.fabricmc"));
+
+        assertTrue(client.contains("import net.neoforged.api.distmarker.Dist;"));
+        assertTrue(client.contains("import net.neoforged.fml.common.Mod;"));
+        assertTrue(client.contains("@Mod(value = SignPort.MOD_ID, dist = Dist.CLIENT)"));
+        assertTrue(client.contains("import tech.endorsed.signport.SignPort;"));
+        assertFalse(client.contains("net.fabricmc"));
     }
 
     private static Map<String, List<String>> parseEntrypoints(String metadata) {

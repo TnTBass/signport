@@ -426,6 +426,32 @@ tasks.register("checkCommonSourceSetsLoaderNeutral") {
 	}
 }
 
+tasks.register("checkNeoForgeImportsScoped") {
+	group = "verification"
+	description = "Fails when NeoForge APIs are imported outside NeoForge source roots."
+
+	doLast {
+		def forbidden = ~/^\s*import\s+net\.neoforged\./
+		def allowedPrefixes = ["src/neoforge/", "src/neoforgeClient/"]
+		def matches = []
+		fileTree("src").matching { include "**/*.java" }.files.each { sourceFile ->
+			def relativePath = projectDir.toPath().relativize(sourceFile.toPath()).toString().replace(File.separatorChar, '/' as char)
+			if (allowedPrefixes.any { relativePath.startsWith(it) }) {
+				return
+			}
+			sourceFile.eachLine { line, number ->
+				if ((line =~ forbidden).find()) {
+					matches << "${relativePath}:${number}: ${line}"
+				}
+			}
+		}
+		if (!matches.isEmpty()) {
+			throw new GradleException("NeoForge imports must stay in NeoForge source roots:\n" + matches.join("\n"))
+		}
+		logger.lifecycle("NeoForge import scope gate passed.")
+	}
+}
+
 tasks.register("checkFabricJarResources") {
 	group = "verification"
 	description = "Fails when Fabric artifacts contain NeoForge metadata."
@@ -449,6 +475,10 @@ tasks.register("checkNeoForgeJarResources") {
 
 	onlyIf {
 		project.findProject(":neoforge") != null
+	}
+
+	dependsOn {
+		project.findProject(":neoforge") == null ? [] : [project(":neoforge").tasks.named("jar")]
 	}
 
 	doLast {
@@ -482,7 +512,7 @@ tasks.register("checkReleasePublishingSources") {
 }
 
 tasks.named("check") {
-	dependsOn("checkChangelog", "checkWrapperChecksum", "checkUnitTestCompanions", "checkSourceHygiene", "checkCommonSourceSetsLoaderNeutral", "checkFabricJarResources", "checkNeoForgeJarResources", "checkReleasePublishingSources")
+	dependsOn("checkChangelog", "checkWrapperChecksum", "checkUnitTestCompanions", "checkSourceHygiene", "checkCommonSourceSetsLoaderNeutral", "checkNeoForgeImportsScoped", "checkFabricJarResources", "checkNeoForgeJarResources", "checkReleasePublishingSources")
 }
 
 tasks.register("releaseReminder") {

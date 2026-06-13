@@ -1,6 +1,10 @@
 pluginManagement {
 	repositories {
 		maven {
+			name = 'NeoForged'
+			url = 'https://maven.neoforged.net/releases'
+		}
+		maven {
 			name = 'Fabric'
 			url = 'https://maven.fabricmc.net/'
 		}
@@ -12,3 +16,5 @@ pluginManagement {
 plugins {
 	id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
+
+include 'neoforge'

@@ -1,0 +1,30 @@
+modLoader="javafml"
+loaderVersion="[1,)"
+license="LGPLv3"
+issueTrackerURL="https://github.com/TnTBass/signport/issues"
+
+[[mods]]
+modId="signport"
+version="${version}"
+displayName="SignPort"
+displayURL="https://github.com/TnTBass/signport"
+authors="TnTBass, approved"
+logoFile="assets/signport/icon.png"
+description='''A sign portal mod for quick travel between named anchors.'''
+
+[[dependencies.signport]]
+modId="neoforge"
+type="required"
+versionRange="[26.1.2,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.signport]]
+modId="minecraft"
+type="required"
+versionRange="[26.1.2]"
+ordering="NONE"
+side="BOTH"
+
+[[features.signport]]
+javaVersion="[25,)"
