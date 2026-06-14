@@ -23,7 +23,7 @@ repositories {
 
 sourceSets {
 	main {
-		java.setSrcDirs(["../src/neoforge/java", "../src/neoforgeClient/java"])
+		java.setSrcDirs(["../src/commonClient/java", "../src/neoforge/java", "../src/neoforgeClient/java"])
 		resources.setSrcDirs(["../src/neoforge/resources"])
 	}
 	test {
@@ -35,11 +35,13 @@ sourceSets {
 dependencies {
 	compileOnly rootProject.sourceSets.main.output
 	compileOnly files(rootProject.sourceSets.main.compileClasspath)
+	compileOnly files({ rootProject.configurations.clientCompileClasspath.files })
 	compileOnly "net.neoforged:neoforge:${rootProject.neoforge_version}"
 	compileOnly "net.neoforged.fancymodloader:loader:${rootProject.fancymodloader_version}"
 
 	testImplementation rootProject.sourceSets.main.output
 	testImplementation files(rootProject.sourceSets.main.compileClasspath)
+	testImplementation files({ rootProject.configurations.clientCompileClasspath.files })
 	testImplementation "net.neoforged:neoforge:${rootProject.neoforge_version}"
 	testImplementation "net.neoforged.fancymodloader:loader:${rootProject.fancymodloader_version}"
 	testImplementation "org.junit.jupiter:junit-jupiter:6.1.0"
