@@ -1,6 +1,9 @@
 package tech.endorsed.signport.neoforge;
 
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.level.Level;
+import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLPaths;
@@ -13,10 +16,14 @@ import tech.endorsed.signport.command.AnchorCommand;
 import tech.endorsed.signport.config.SignPortConfig;
 import tech.endorsed.signport.network.AnchorSyncServer;
 import tech.endorsed.signport.neoforge.events.NeoForgeSignEvents;
+import tech.endorsed.signport.neoforge.network.NeoForgeAnchorSyncServer;
+import tech.endorsed.signport.neoforge.network.NeoForgePayloads;
+import tech.endorsed.signport.neoforge.network.NeoForgeSignPortStatusNetworking;
 import tech.endorsed.signport.neoforge.permission.NeoForgeSignPortPermissions;
-import tech.endorsed.signport.permission.SignPortPermissions;
 import tech.endorsed.signport.SignPort;
+import tech.endorsed.signport.permission.SignPortPermissions;
 import tech.endorsed.signport.status.SignPortStatus;
+import tech.endorsed.signport.world.Anchor;
 import tech.endorsed.signport.world.AnchorState;
 
 import java.util.LinkedHashMap;
@@ -25,14 +32,37 @@ import java.util.stream.Collectors;
 
 @Mod(SignPort.MOD_ID)
 public final class SignPortNeoForge {
-    public SignPortNeoForge() {
+    public SignPortNeoForge(IEventBus modBus) {
         SignPortConfig.load(FMLPaths.CONFIGDIR.get().resolve(SignPortConfig.FILE_NAME), SignPort.LOGGER);
         SignPortStatus.installVersionSupplier(SignPortNeoForge::resolveVersion);
         SignPortPermissions.install(new NeoForgeSignPortPermissions());
         BlueMapIntegration.install(BlueMapIntegration.Adapter.NO_OP);
-        AnchorSyncServer.install(AnchorSyncServer.Adapter.NO_OP);
+        AnchorSyncServer.install(new AnchorSyncServer.Adapter() {
+            @Override
+            public void sendFullToAll(MinecraftServer server) {
+                NeoForgeAnchorSyncServer.sendFullToAll(server);
+            }
 
+            @Override
+            public void anchorCreated(MinecraftServer server, Anchor anchor) {
+                NeoForgeAnchorSyncServer.anchorCreated(server, anchor);
+            }
+
+            @Override
+            public void anchorUpdated(MinecraftServer server, Anchor anchor) {
+                NeoForgeAnchorSyncServer.anchorUpdated(server, anchor);
+            }
+
+            @Override
+            public void anchorDeleted(MinecraftServer server, String name, ResourceKey<Level> dimension) {
+                NeoForgeAnchorSyncServer.anchorDeleted(server, name, dimension);
+            }
+        });
+
+        modBus.addListener(NeoForgePayloads::register);
         NeoForgeSignEvents.register();
+        NeoForgeAnchorSyncServer.register();
+        NeoForgeSignPortStatusNetworking.register();
         NeoForge.EVENT_BUS.addListener(NeoForgeSignPortPermissions::registerNodes);
         NeoForge.EVENT_BUS.addListener(SignPortNeoForge::registerCommands);
         NeoForge.EVENT_BUS.addListener(SignPortNeoForge::serverStarted);

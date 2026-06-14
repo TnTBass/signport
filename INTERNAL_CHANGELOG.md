@@ -4,6 +4,7 @@ Internal repo, build, workflow, and release-process changes are documented here.
 
 ## Unreleased
 
+- Wired the NeoForge payload/status/anchor-sync transport slice through loader-native payload registration and capability-gated server sends.
 - Wired NeoForge portal sign use/break events and enabled the shared sign create/edit protection mixin for the sign-event adapter slice, with source-contract tests until a NeoForge runtime harness is added.
 - Wired the first NeoForge runtime bootstrap slice for config/version setup, command/lifecycle hooks, and native permission node registration.
 - Added the initial NeoForge source-root, metadata, and build skeleton for the multiloader baseline.
