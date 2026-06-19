@@ -31,6 +31,26 @@ class NeoForgeResourceBoundaryTest {
                 () -> assertTrue(neoForgeBuild.contains("exclude \"signport.mixins.json\"")));
     }
 
+    @Test
+    void neoForgeBuildUsesLoaderNativeModDevWiringWithoutChangingFabricPackaging() throws IOException {
+        String rootBuild = Files.readString(repoPath("build.gradle"));
+        String settings = Files.readString(repoPath("settings.gradle"));
+        String properties = Files.readString(repoPath("gradle.properties"));
+        String neoForgeBuild = Files.readString(repoPath("neoforge/build.gradle"));
+
+        assertAll(
+                () -> assertTrue(settings.contains("id 'net.neoforged.moddev' version")),
+                () -> assertTrue(properties.contains("moddevgradle_version=")),
+                () -> assertTrue(neoForgeBuild.contains("id 'net.neoforged.moddev'")),
+                () -> assertTrue(neoForgeBuild.contains("neoForge {")),
+                () -> assertTrue(neoForgeBuild.contains("version = rootProject.neoforge_version")),
+                () -> assertFalse(neoForgeBuild.contains("parchment {")),
+                () -> assertTrue(neoForgeBuild.contains("compileOnly \"net.neoforged:neoforge:${rootProject.neoforge_version}\"")),
+                () -> assertTrue(neoForgeBuild.contains("testImplementation \"net.neoforged:neoforge:${rootProject.neoforge_version}\"")),
+                () -> assertTrue(rootBuild.contains("archivesName = \"${project.archives_base_name}-fabric\"")),
+                () -> assertTrue(neoForgeBuild.contains("archivesName = \"${rootProject.archives_base_name}-neoforge\"")));
+    }
+
     private static Path repoPath(String path) {
         Path resolved = repoRoot().resolve(path);
         if (Files.exists(resolved)) {

@@ -1,5 +1,6 @@
 plugins {
 	id 'java-library'
+	id 'net.neoforged.moddev'
 }
 
 version = rootProject.version
@@ -32,10 +33,15 @@ sourceSets {
 	}
 }
 
+neoForge {
+	version = rootProject.neoforge_version
+}
+
 dependencies {
 	compileOnly rootProject.sourceSets.main.output
 	compileOnly files(rootProject.sourceSets.main.compileClasspath)
 	compileOnly files({ rootProject.configurations.clientCompileClasspath.files })
+	// ModDev does not expose NeoForge to these custom source sets; keep explicit deps until source-set wiring is native.
 	compileOnly "net.neoforged:neoforge:${rootProject.neoforge_version}"
 	compileOnly "net.neoforged.fancymodloader:loader:${rootProject.fancymodloader_version}"
 

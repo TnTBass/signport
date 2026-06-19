@@ -4,6 +4,7 @@ Internal repo, build, workflow, and release-process changes are documented here.
 
 ## Unreleased
 
+- Wired the NeoForge subproject through ModDev Gradle while preserving the loader-qualified Fabric and NeoForge artifact boundary.
 - Moved the shared SignPort icon into the common resource root and kept Fabric client keybind translations in the Fabric client resource root so Fabric and NeoForge jars do not leak loader-specific metadata.
 - Normalized future Fabric and NeoForge build artifact filenames to include the loader before the mod version and pinned Java source compilation to UTF-8 for Windows builds.
 - Wired the NeoForge client payload/status/anchor-sync transport runtime through loader-native client handlers and capability-gated sends.
