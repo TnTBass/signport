@@ -32,7 +32,7 @@ if ([string]::IsNullOrWhiteSpace($Version)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($JarPath)) {
-    $JarPath = "build/libs/signport-$Version.jar"
+    $JarPath = "build/libs/signport-fabric-$Version.jar"
 }
 
 $minecraftVersion = $Version -replace "^.*\+mc", ""

@@ -138,6 +138,8 @@ The `releaseReminder` and `internalReleaseReminder` Gradle tasks that run at the
 
 Version scheme: `<major>.<minor>.<patch>+mc<mc-version>` — e.g. `1.2.1+mc26.1.2`. Tags use `v<version>` — e.g. `v1.2.1+mc26.1.2`.
 
+Release artifact filenames include the mod loader before the version: `signport-fabric-<modversion>+mc<mcversion>.jar` and `signport-fabric-<modversion>+mc<mcversion>-sources.jar`. NeoForge build artifacts use the same loader-qualified convention, e.g. `signport-neoforge-<modversion>+mc<mcversion>.jar`.
+
 Release steps:
 
 1. Move relevant public `CHANGELOG.md` entries from `Unreleased` to a versioned section. Keep maintainer-only entries in `INTERNAL_CHANGELOG.md`; they are not published to GitHub Releases, Modrinth, or CurseForge.

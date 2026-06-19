@@ -38,8 +38,8 @@ jobs:
       - name: verify release artifacts
         run: |
           version="${GITHUB_REF_NAME#v}"
-          test -f "build/libs/signport-${version}.jar"
-          test -f "build/libs/signport-${version}-sources.jar"
+          test -f "build/libs/signport-fabric-${version}.jar"
+          test -f "build/libs/signport-fabric-${version}-sources.jar"
       - name: extract public changelog notes
         run: |
           version="${GITHUB_REF_NAME#v}"
@@ -66,8 +66,8 @@ jobs:
           fi
 
           gh release create "${GITHUB_REF_NAME}" \
-            "build/libs/signport-${version}.jar" \
-            "build/libs/signport-${version}-sources.jar" \
+            "build/libs/signport-fabric-${version}.jar" \
+            "build/libs/signport-fabric-${version}-sources.jar" \
             --title "${GITHUB_REF_NAME}" \
             "${notes_args[@]}"
       - name: publish modrinth release
@@ -79,8 +79,8 @@ jobs:
           ./scripts/upload-modrinth.ps1 `
             -Slug "signport" `
             -Version $version `
-            -JarPath "build/libs/signport-$version.jar" `
-            -SourcesJarPath "build/libs/signport-$version-sources.jar" `
+            -JarPath "build/libs/signport-fabric-$version.jar" `
+            -SourcesJarPath "build/libs/signport-fabric-$version-sources.jar" `
             -ChangelogPath "release-notes.md"
       - name: publish curseforge release
         id: curseforge
@@ -93,7 +93,7 @@ jobs:
           ./scripts/upload-curseforge.ps1 `
             -Slug "signport" `
             -Version $version `
-            -JarPath "build/libs/signport-$version.jar" `
+            -JarPath "build/libs/signport-fabric-$version.jar" `
             -ChangelogPath "release-notes.md"
       - name: report curseforge file ID
         run: |
