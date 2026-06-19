@@ -100,8 +100,8 @@ dependencies {
 	clientImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 	include(implementation("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}"))
 	compileOnly "de.bluecolored:bluemap-api:2.7.8"
-	compileOnly "maven.modrinth:modmenu:19.0.0-alpha.1"
-	clientCompileOnly "maven.modrinth:modmenu:19.0.0-alpha.1"
+	compileOnly "maven.modrinth:modmenu:20.0.0-beta.3"
+	clientCompileOnly "maven.modrinth:modmenu:20.0.0-beta.3"
 
 	testImplementation "org.junit.jupiter:junit-jupiter:6.1.0"
 	testRuntimeOnly "org.junit.platform:junit-platform-launcher"
