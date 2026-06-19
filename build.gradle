@@ -88,7 +88,7 @@ sourceSets {
 	main {
 		java.setSrcDirs(["src/common/java", "src/fabric/java"])
 		java.srcDir generatedBuildInfoDir
-		resources.setSrcDirs(["src/fabric/resources"])
+		resources.setSrcDirs(["src/common/resources", "src/fabric/resources"])
 	}
 	client {
 		java.setSrcDirs(["src/commonClient/java", "src/fabricClient/java"])

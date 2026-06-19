@@ -24,7 +24,7 @@ repositories {
 sourceSets {
 	main {
 		java.setSrcDirs(["../src/commonClient/java", "../src/neoforge/java", "../src/neoforgeClient/java"])
-		resources.setSrcDirs(["../src/neoforge/resources"])
+		resources.setSrcDirs(["../src/common/resources", "../src/neoforge/resources"])
 	}
 	test {
 		java.setSrcDirs(["../src/neoforgeTest/java"])
@@ -70,6 +70,7 @@ processResources {
 
 tasks.named("jar") {
 	from(rootProject.sourceSets.main.output) {
+		exclude "assets/**"
 		exclude "tech/endorsed/signport/fabric/**"
 		exclude "fabric.mod.json"
 		exclude "signport.mixins.json"
