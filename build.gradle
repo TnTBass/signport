@@ -496,6 +496,64 @@ tasks.register("checkNeoForgeJarResources") {
 	}
 }
 
+tasks.register("checkNeoForgeRuntimeLaunchBoundary") {
+	group = "verification"
+	description = "Validates the current NeoForge ModDev runtime/load boundary."
+
+	onlyIf {
+		project.findProject(":neoforge") != null
+	}
+
+	dependsOn {
+		project.findProject(":neoforge") == null ? [] : [
+				project(":neoforge").tasks.named("classes"),
+				project(":neoforge").tasks.named("createLaunchScripts")
+		]
+	}
+
+	doLast {
+		def neoForgeProject = project(":neoforge")
+		def taskNames = neoForgeProject.tasks.names
+		if (!taskNames.contains("createLaunchScripts")) {
+			throw new GradleException("NeoForge ModDev must expose createLaunchScripts for runtime/load validation.")
+		}
+
+		def runTasks = ["runServer", "runClient"].findAll { taskNames.contains(it) }
+		if (runTasks.isEmpty()) {
+			logger.lifecycle("NeoForge ModDev currently exposes createLaunchScripts, but no NeoForge runServer/runClient tasks are declared yet.")
+		} else {
+			logger.lifecycle("NeoForge runtime tasks available: ${runTasks.join(", ")}")
+		}
+
+		def classesDir = neoForgeProject.layout.buildDirectory.dir("classes/java/main").get().asFile
+		def resourcesDir = neoForgeProject.layout.buildDirectory.dir("resources/main").get().asFile
+		def modMetadata = new File(resourcesDir, "META-INF/neoforge.mods.toml")
+		def mixinMetadata = new File(resourcesDir, "signport.neoforge.mixins.json")
+		def serverEntrypoint = new File(classesDir, "tech/endorsed/signport/neoforge/SignPortNeoForge.class")
+		def clientEntrypoint = new File(classesDir, "tech/endorsed/signport/neoforge/client/SignPortNeoForgeClient.class")
+
+		[
+				modMetadata,
+				mixinMetadata,
+				serverEntrypoint,
+				clientEntrypoint
+		].each { requiredFile ->
+			if (!requiredFile.exists()) {
+				throw new GradleException("NeoForge runtime/load boundary is missing ${neoForgeProject.projectDir.toPath().relativize(requiredFile.toPath())}.")
+			}
+		}
+
+		def metadata = modMetadata.text
+		if (!metadata.contains('modId="signport"')
+				|| !metadata.contains('[[mixins]]')
+				|| !metadata.contains('config="signport.neoforge.mixins.json"')) {
+			throw new GradleException("NeoForge metadata must identify SignPort and load the NeoForge mixin config.")
+		}
+
+		logger.lifecycle("NeoForge runtime/load boundary check passed.")
+	}
+}
+
 tasks.register("checkReleasePublishingSources") {
 	group = "verification"
 	description = "Checks release publishing scripts and workflows for marketplace upload safeguards."
@@ -513,7 +571,7 @@ tasks.register("checkReleasePublishingSources") {
 }
 
 tasks.named("check") {
-	dependsOn("checkChangelog", "checkWrapperChecksum", "checkUnitTestCompanions", "checkSourceHygiene", "checkCommonSourceSetsLoaderNeutral", "checkNeoForgeImportsScoped", "checkFabricJarResources", "checkNeoForgeJarResources", "checkReleasePublishingSources")
+	dependsOn("checkChangelog", "checkWrapperChecksum", "checkUnitTestCompanions", "checkSourceHygiene", "checkCommonSourceSetsLoaderNeutral", "checkNeoForgeImportsScoped", "checkFabricJarResources", "checkNeoForgeJarResources", "checkNeoForgeRuntimeLaunchBoundary", "checkReleasePublishingSources")
 }
 
 tasks.register("releaseReminder") {
