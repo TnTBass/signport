@@ -14,6 +14,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import tech.endorsed.signport.SignPort;
 import tech.endorsed.signport.client.AnchorClient;
+import tech.endorsed.signport.client.ScreenNavigation;
 import tech.endorsed.signport.client.SignPortClientState;
 import tech.endorsed.signport.network.AnchorSyncPayloads;
 import tech.endorsed.signport.world.AnchorCreation;
@@ -29,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 
 public final class AnchorBrowserScreen extends Screen {
+    private static AnchorBrowserScreen active;
     private static final Map<String, Boolean> COLLAPSED_GROUPS = new HashMap<>();
     private static final int PANEL_WIDTH = 360;
     private static final int ROW_HEIGHT = 22;
@@ -65,6 +67,10 @@ public final class AnchorBrowserScreen extends Screen {
         this.parent = parent;
     }
 
+    public static AnchorBrowserScreen active() {
+        return active;
+    }
+
     public static void installCreateAnchorSender(CreateAnchorSender sender) {
         createAnchorSender = sender == null ? payload -> {
         } : sender;
@@ -72,6 +78,7 @@ public final class AnchorBrowserScreen extends Screen {
 
     @Override
     protected void init() {
+        active = this;
         int left = left();
         int top = top();
         this.searchBox = new EditBox(this.font, left, top + 36, PANEL_WIDTH - 192, 18, Component.literal("Search anchors"));
@@ -320,7 +327,14 @@ public final class AnchorBrowserScreen extends Screen {
     @Override
     public void onClose() {
         if (this.minecraft != null) {
-            this.minecraft.setScreen(parent);
+            ScreenNavigation.show(parent);
+        }
+    }
+
+    @Override
+    public void removed() {
+        if (active == this) {
+            active = null;
         }
     }
 

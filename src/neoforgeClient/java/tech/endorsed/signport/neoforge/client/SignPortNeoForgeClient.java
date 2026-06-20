@@ -14,6 +14,7 @@ import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlers
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.common.extensions.ICommonPacketListener;
 import tech.endorsed.signport.SignPort;
+import tech.endorsed.signport.client.ScreenNavigation;
 import tech.endorsed.signport.client.SignPortClientState;
 import tech.endorsed.signport.client.config.SignPortClientConfig;
 import tech.endorsed.signport.client.gui.AnchorBrowserScreen;
@@ -32,6 +33,7 @@ public final class SignPortNeoForgeClient {
 
     public SignPortNeoForgeClient(IEventBus modBus) {
         SignPortClientConfig.load(FMLPaths.CONFIGDIR.get().resolve(SignPortClientConfig.FILE_NAME));
+        ScreenNavigation.install(screen -> Minecraft.getInstance().setScreenAndShow(screen));
         SignPortStatus.installVersionSupplier(SignPortNeoForgeClient::resolveVersion);
         AnchorBrowserScreen.installCreateAnchorSender(ClientPacketDistributor::sendToServer);
 
@@ -49,7 +51,7 @@ public final class SignPortNeoForgeClient {
                 context.enqueueWork(() -> SignPortClientState.applyDelta(payload)));
         event.register(AnchorSyncPayloads.CREATE_ANCHOR_RESPONSE_TYPE, (payload, context) ->
                 context.enqueueWork(() -> {
-                    if (Minecraft.getInstance().screen instanceof AnchorBrowserScreen browser) {
+                    if (AnchorBrowserScreen.active() instanceof AnchorBrowserScreen browser) {
                         browser.handleCreateAnchorResponse(payload);
                     }
                 }));

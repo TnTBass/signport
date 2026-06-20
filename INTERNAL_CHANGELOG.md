@@ -4,6 +4,7 @@ Internal repo, build, workflow, and release-process changes are documented here.
 
 ## Unreleased
 
+- Retargeted the multiloader Fabric and NeoForge local build inputs and runtime-validation metadata to Minecraft 26.2.
 - Added a bounded NeoForge runtime startup/load check that launches the local ModDev server harness, verifies SignPort metadata, mixin, classloader, server-start, and entrypoint markers, then stops the server.
 - Added a local NeoForge ModDev server run harness and strengthened the runtime/load boundary check to validate the generated runServer launch script and SignPort mod-folder wiring.
 - Added the initial NeoForge runtime/load boundary check that exercises ModDev launch-script generation and verifies the packaged metadata and entrypoint artifacts.

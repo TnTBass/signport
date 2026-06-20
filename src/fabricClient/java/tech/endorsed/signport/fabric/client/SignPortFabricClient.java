@@ -13,6 +13,7 @@ import net.minecraft.client.KeyMapping.Category;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
 import tech.endorsed.signport.SignPort;
+import tech.endorsed.signport.client.ScreenNavigation;
 import tech.endorsed.signport.client.SignPortClientState;
 import tech.endorsed.signport.client.config.ConfigScreenFactory;
 import tech.endorsed.signport.client.config.SignPortClientConfig;
@@ -38,6 +39,7 @@ public class SignPortFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         SignPortClientConfig.load(FabricLoader.getInstance().getConfigDir().resolve(SignPortClientConfig.FILE_NAME));
+        ScreenNavigation.install(screen -> Minecraft.getInstance().setScreenAndShow(screen));
         SignPortStatus.installVersionSupplier(SignPortFabricClient::resolveVersion);
         AnchorBrowserScreen.installCreateAnchorSender(ClientPlayNetworking::send);
         FabricPayloads.registerClientbound();
@@ -49,7 +51,7 @@ public class SignPortFabricClient implements ClientModInitializer {
                 context.client().execute(() -> SignPortClientState.applyDelta(payload)));
         ClientPlayNetworking.registerGlobalReceiver(AnchorSyncPayloads.CREATE_ANCHOR_RESPONSE_TYPE, (payload, context) ->
                 context.client().execute(() -> {
-                    if (context.client().screen instanceof AnchorBrowserScreen browser) {
+                    if (AnchorBrowserScreen.active() instanceof AnchorBrowserScreen browser) {
                         browser.handleCreateAnchorResponse(payload);
                     }
                 }));
@@ -151,12 +153,14 @@ public class SignPortFabricClient implements ClientModInitializer {
 
     public static void openAnchorBrowser(Minecraft client) {
         if (client.player == null) return;
-        client.setScreen(new AnchorBrowserScreen(client.screen));
+        // Keybind entrypoints open from gameplay; menu integrations should pass their parent at the call site.
+        ScreenNavigation.show(new AnchorBrowserScreen(null));
     }
 
     public static void openConfigScreen(Minecraft client) {
         if (client.player == null) return;
-        client.setScreen(ConfigScreenFactory.create(client.screen));
+        // Keybind entrypoints open from gameplay; ModMenu passes a parent through SignPortModMenuApi.
+        ScreenNavigation.show(ConfigScreenFactory.create(null));
     }
 
     private static String resolveVersion() {

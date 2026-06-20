@@ -6,6 +6,8 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
+- Ported the Fabric and NeoForge build targets and loader metadata floors to Minecraft 26.2.
+
 ## 2.2.3+mc26.1.2 - 2026-06-06
 
 - Added [ModStatusKit](https://github.com/TnTBass/ModStatusKit)-powered passive client/server SignPort status as a compact top-right indicator in the optional settings screen, with hover details for the client and server versions. Both client and server must update to this build for the status payload channel to be detected.

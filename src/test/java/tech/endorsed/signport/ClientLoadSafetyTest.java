@@ -72,6 +72,54 @@ class ClientLoadSafetyTest {
         assertFalse(client.contains("net.fabricmc"));
     }
 
+    @Test
+    void metadataTargetsMinecraft26Point2WithLoaderFloors() throws IOException {
+        String properties = Files.readString(Path.of("gradle.properties"));
+        String fabricMetadata = Files.readString(Path.of("src/fabric/resources/fabric.mod.json"));
+        String neoForgeMetadata = Files.readString(Path.of("src/neoforge/resources/META-INF/neoforge.mods.toml"));
+
+        assertTrue(properties.contains("minecraft_version=26.2"));
+        assertTrue(properties.contains("loader_version=0.19.3"));
+        assertTrue(properties.contains("mod_version=2.2.3+mc26.2"));
+        assertTrue(properties.contains("fabric_version=0.152.2+26.2"));
+        assertTrue(properties.contains("neoforge_version=26.2.0.6-beta"));
+        assertTrue(fabricMetadata.contains("\"fabricloader\": \">=0.19.3\""));
+        assertTrue(fabricMetadata.contains("\"minecraft\": \">=26.2\""));
+        assertTrue(neoForgeMetadata.contains("versionRange=\"[26.2.0.6-beta,)\""));
+        assertTrue(neoForgeMetadata.contains("versionRange=\"[26.2,)\""));
+        assertFalse(neoForgeMetadata.contains("versionRange=\"[26.2]\""));
+    }
+
+    @Test
+    void screenNavigationUsesLoaderInstalledImplementation() throws IOException {
+        String commonNavigation = Files.readString(Path.of("src/commonClient/java/tech/endorsed/signport/client/ScreenNavigation.java"));
+        String browser = Files.readString(Path.of("src/commonClient/java/tech/endorsed/signport/client/gui/AnchorBrowserScreen.java"));
+        String config = Files.readString(Path.of("src/commonClient/java/tech/endorsed/signport/client/config/SignPortConfigScreen.java"));
+        String fabricClient = Files.readString(Path.of("src/fabricClient/java/tech/endorsed/signport/fabric/client/SignPortFabricClient.java"));
+        String modMenu = Files.readString(Path.of("src/fabricClient/java/tech/endorsed/signport/fabric/client/config/SignPortModMenuApi.java"));
+        String neoForgeClient = Files.readString(Path.of("src/neoforgeClient/java/tech/endorsed/signport/neoforge/client/SignPortNeoForgeClient.java"));
+
+        assertFalse(commonNavigation.contains("net.fabricmc"));
+        assertFalse(commonNavigation.contains("net.neoforged"));
+        assertFalse(commonNavigation.contains("MinecraftAccessor"));
+        assertFalse(commonNavigation.contains("setScreenAndShow"));
+        assertTrue(browser.contains("ScreenNavigation.show(parent)"));
+        assertTrue(browser.contains("static AnchorBrowserScreen active()"));
+        Matcher constructor = Pattern.compile("(?s)public AnchorBrowserScreen\\(Screen parent\\) \\{(.*?)\\R    \\}").matcher(browser);
+        assertTrue(constructor.find());
+        assertFalse(constructor.group(1).contains("active = this;"));
+        Matcher init = Pattern.compile("(?s)protected void init\\(\\) \\{.*?active = this;").matcher(browser);
+        assertTrue(init.find());
+        assertTrue(config.contains("ScreenNavigation.show(parent)"));
+        assertTrue(fabricClient.contains("ScreenNavigation.install(screen -> Minecraft.getInstance().setScreenAndShow(screen))"));
+        assertTrue(neoForgeClient.contains("ScreenNavigation.install(screen -> Minecraft.getInstance().setScreenAndShow(screen))"));
+        assertFalse(fabricClient.contains("client.screen"));
+        assertTrue(fabricClient.contains("Keybind entrypoints open from gameplay"));
+        assertTrue(modMenu.contains("ConfigScreenFactory.create(parent)"));
+        assertTrue(fabricClient.contains("AnchorBrowserScreen.active() instanceof AnchorBrowserScreen browser"));
+        assertTrue(neoForgeClient.contains("AnchorBrowserScreen.active() instanceof AnchorBrowserScreen browser"));
+    }
+
     private static Map<String, List<String>> parseEntrypoints(String metadata) {
         Matcher outer = Pattern.compile("\"entrypoints\"\\s*:\\s*\\{(.*?)}", Pattern.DOTALL).matcher(metadata);
         if (!outer.find()) return Map.of();

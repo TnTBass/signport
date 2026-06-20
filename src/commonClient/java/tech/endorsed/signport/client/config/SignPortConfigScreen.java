@@ -7,6 +7,7 @@ import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import tech.endorsed.signport.client.ScreenNavigation;
 import tech.endorsed.signport.internal.modstatus.ModStatusDisplay;
 import tech.endorsed.signport.status.SignPortStatus;
 import tech.endorsed.signport.status.SignPortStatusDisplay;
@@ -71,7 +72,7 @@ public final class SignPortConfigScreen extends Screen {
     @Override
     public void onClose() {
         if (this.minecraft != null) {
-            this.minecraft.setScreen(parent);
+            ScreenNavigation.show(parent);
         }
     }
 

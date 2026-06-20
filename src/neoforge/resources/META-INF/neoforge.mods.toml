@@ -15,14 +15,14 @@ description='''A sign portal mod for quick travel between named anchors.'''
 [[dependencies.signport]]
 modId="neoforge"
 type="required"
-versionRange="[26.1.2,)"
+versionRange="[26.2.0.6-beta,)"
 ordering="NONE"
 side="BOTH"
 
 [[dependencies.signport]]
 modId="minecraft"
 type="required"
-versionRange="[26.1.2]"
+versionRange="[26.2,)"
 ordering="NONE"
 side="BOTH"
 
