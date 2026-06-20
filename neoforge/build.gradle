@@ -35,6 +35,20 @@ sourceSets {
 
 neoForge {
 	version = rootProject.neoforge_version
+
+	mods {
+		signport {
+			sourceSet sourceSets.main
+		}
+	}
+
+	runs {
+		server {
+			server()
+			gameDirectory = layout.projectDirectory.dir("run/server")
+			loadedMods.add(mods.named("signport"))
+		}
+	}
 }
 
 dependencies {

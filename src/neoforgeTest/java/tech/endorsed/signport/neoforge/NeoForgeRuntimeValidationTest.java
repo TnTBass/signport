@@ -11,14 +11,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class NeoForgeRuntimeValidationTest {
     @Test
-    void rootBuildDeclaresNeoForgeRuntimeLaunchBoundaryCheck() throws IOException {
+    void rootBuildValidatesDeclaredNeoForgeRuntimeHarness() throws IOException {
         String build = Files.readString(repoPath("build.gradle"));
+        String neoForgeBuild = Files.readString(repoPath("neoforge/build.gradle"));
 
         assertAll(
+                () -> assertTrue(neoForgeBuild.contains("mods {")),
+                () -> assertTrue(neoForgeBuild.contains("runs {")),
+                () -> assertTrue(neoForgeBuild.contains("server {")),
+                () -> assertTrue(neoForgeBuild.contains("server()")),
                 () -> assertTrue(build.contains("checkNeoForgeRuntimeLaunchBoundary")),
                 () -> assertTrue(build.contains("project(\":neoforge\").tasks.named(\"createLaunchScripts\")")),
-                () -> assertTrue(build.contains("NeoForge ModDev currently exposes createLaunchScripts")),
-                () -> assertTrue(build.contains("no NeoForge runServer/runClient tasks are declared yet")));
+                () -> assertTrue(build.contains("taskNames.contains(\"runServer\")")),
+                () -> assertTrue(build.contains("runServer")),
+                () -> assertTrue(build.contains("serverRunClasspath.txt")),
+                () -> assertTrue(build.contains("-Dfml.modFolders=signport")),
+                () -> assertTrue(build.contains("net.neoforged.devlaunch.Main")));
     }
 
     private static Path repoPath(String path) {

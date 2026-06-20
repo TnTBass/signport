@@ -517,26 +517,40 @@ tasks.register("checkNeoForgeRuntimeLaunchBoundary") {
 		if (!taskNames.contains("createLaunchScripts")) {
 			throw new GradleException("NeoForge ModDev must expose createLaunchScripts for runtime/load validation.")
 		}
-
-		def runTasks = ["runServer", "runClient"].findAll { taskNames.contains(it) }
-		if (runTasks.isEmpty()) {
-			logger.lifecycle("NeoForge ModDev currently exposes createLaunchScripts, but no NeoForge runServer/runClient tasks are declared yet.")
-		} else {
-			logger.lifecycle("NeoForge runtime tasks available: ${runTasks.join(", ")}")
+		if (!taskNames.contains("runServer")) {
+			throw new GradleException("NeoForge ModDev must expose runServer for local runtime/load validation.")
 		}
+		if (!taskNames.contains("createServerLaunchScript")) {
+			throw new GradleException("NeoForge ModDev must expose createServerLaunchScript for the server run harness.")
+		}
+
+		logger.lifecycle("NeoForge runtime tasks available: runServer")
 
 		def classesDir = neoForgeProject.layout.buildDirectory.dir("classes/java/main").get().asFile
 		def resourcesDir = neoForgeProject.layout.buildDirectory.dir("resources/main").get().asFile
+		def moddevDir = neoForgeProject.layout.buildDirectory.dir("moddev").get().asFile
 		def modMetadata = new File(resourcesDir, "META-INF/neoforge.mods.toml")
 		def mixinMetadata = new File(resourcesDir, "signport.neoforge.mixins.json")
 		def serverEntrypoint = new File(classesDir, "tech/endorsed/signport/neoforge/SignPortNeoForge.class")
 		def clientEntrypoint = new File(classesDir, "tech/endorsed/signport/neoforge/client/SignPortNeoForgeClient.class")
+		def launchScript = ["runServer.cmd", "runServer.sh"]
+				.collect { new File(moddevDir, it) }
+				.find { it.exists() }
+		if (launchScript == null) {
+			throw new GradleException("NeoForge runtime/load boundary is missing a generated runServer launch script.")
+		}
+		def classpathArgs = new File(moddevDir, "serverRunClasspath.txt")
+		def programArgs = new File(moddevDir, "serverRunProgramArgs.txt")
+		def vmArgs = new File(moddevDir, "serverRunVmArgs.txt")
 
 		[
 				modMetadata,
 				mixinMetadata,
 				serverEntrypoint,
-				clientEntrypoint
+				clientEntrypoint,
+				classpathArgs,
+				programArgs,
+				vmArgs
 		].each { requiredFile ->
 			if (!requiredFile.exists()) {
 				throw new GradleException("NeoForge runtime/load boundary is missing ${neoForgeProject.projectDir.toPath().relativize(requiredFile.toPath())}.")
@@ -550,7 +564,23 @@ tasks.register("checkNeoForgeRuntimeLaunchBoundary") {
 			throw new GradleException("NeoForge metadata must identify SignPort and load the NeoForge mixin config.")
 		}
 
-		logger.lifecycle("NeoForge runtime/load boundary check passed.")
+		def launchText = launchScript.text.replace("\\", "/")
+		def classpathText = classpathArgs.text
+		def programText = programArgs.text
+		// These anchors intentionally validate ModDev's generated NeoForge launch contract for the current target line.
+		if (!launchText.contains("-Dfml.modFolders=signport")
+				|| !launchText.contains("build/classes/java/main")
+				|| !launchText.contains("build/resources/main")
+				|| !launchText.contains("net.neoforged.devlaunch.Main")) {
+			throw new GradleException("NeoForge runServer launch script must wire SignPort classes/resources through ModDev.")
+		}
+		if (!classpathText.contains("minecraft-patched-${project.minecraft_version}")
+				|| !classpathText.contains("neoforge-${project.neoforge_version}")
+				|| !programText.contains("net.neoforged.fml.startup.Server")) {
+			throw new GradleException("NeoForge runServer launch arguments must target the NeoForge server runtime.")
+		}
+
+		logger.lifecycle("NeoForge runtime/load boundary check passed with generated runServer harness.")
 	}
 }
 

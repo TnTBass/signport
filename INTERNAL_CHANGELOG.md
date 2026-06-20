@@ -4,7 +4,8 @@ Internal repo, build, workflow, and release-process changes are documented here.
 
 ## Unreleased
 
-- Added a NeoForge runtime/load boundary check that exercises ModDev launch-script generation and verifies the packaged metadata and entrypoint artifacts while no direct runServer/runClient harness is declared.
+- Added a local NeoForge ModDev server run harness and strengthened the runtime/load boundary check to validate the generated runServer launch script and SignPort mod-folder wiring.
+- Added the initial NeoForge runtime/load boundary check that exercises ModDev launch-script generation and verifies the packaged metadata and entrypoint artifacts.
 - Wired the NeoForge subproject through ModDev Gradle while preserving the loader-qualified Fabric and NeoForge artifact boundary.
 - Moved the shared SignPort icon into the common resource root and kept Fabric client keybind translations in the Fabric client resource root so Fabric and NeoForge jars do not leak loader-specific metadata.
 - Normalized future Fabric and NeoForge build artifact filenames to include the loader before the mod version and pinned Java source compilation to UTF-8 for Windows builds.
