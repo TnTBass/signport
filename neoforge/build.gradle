@@ -24,7 +24,8 @@ repositories {
 
 sourceSets {
 	main {
-		java.setSrcDirs(["../src/commonClient/java", "../src/neoforge/java", "../src/neoforgeClient/java"])
+		java.setSrcDirs(["../src/common/java", "../src/commonClient/java", "../src/neoforge/java", "../src/neoforgeClient/java"])
+		java.srcDir(rootProject.layout.buildDirectory.dir("generated/sources/buildInfo/java/main"))
 		resources.setSrcDirs(["../src/common/resources", "../src/neoforge/resources"])
 	}
 	test {
@@ -79,6 +80,7 @@ tasks.withType(Test).configureEach {
 
 tasks.named("compileJava") {
 	dependsOn rootProject.tasks.named("classes")
+	dependsOn rootProject.tasks.named("generateBuildInfo")
 }
 
 processResources {
@@ -89,10 +91,7 @@ processResources {
 }
 
 tasks.named("jar") {
-	from(rootProject.sourceSets.main.output) {
-		exclude "assets/**"
-		exclude "tech/endorsed/signport/fabric/**"
-		exclude "fabric.mod.json"
-		exclude "signport.mixins.json"
-	}
+	exclude "tech/endorsed/signport/fabric/**"
+	exclude "fabric.mod.json"
+	exclude "signport.mixins.json"
 }

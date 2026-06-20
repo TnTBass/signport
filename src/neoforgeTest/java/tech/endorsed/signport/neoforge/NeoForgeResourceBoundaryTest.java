@@ -26,7 +26,6 @@ class NeoForgeResourceBoundaryTest {
                 // Keep them exact so resource-root ownership changes are reviewed deliberately.
                 () -> assertTrue(fabricBuild.contains("resources.setSrcDirs([\"src/common/resources\", \"src/fabric/resources\"])")),
                 () -> assertTrue(neoForgeBuild.contains("resources.setSrcDirs([\"../src/common/resources\", \"../src/neoforge/resources\"])")),
-                () -> assertTrue(neoForgeBuild.contains("exclude \"assets/**\"")),
                 () -> assertTrue(neoForgeBuild.contains("exclude \"fabric.mod.json\"")),
                 () -> assertTrue(neoForgeBuild.contains("exclude \"signport.mixins.json\"")));
     }
@@ -42,6 +41,7 @@ class NeoForgeResourceBoundaryTest {
                 () -> assertTrue(settings.contains("id 'net.neoforged.moddev' version")),
                 () -> assertTrue(properties.contains("moddevgradle_version=")),
                 () -> assertTrue(neoForgeBuild.contains("id 'net.neoforged.moddev'")),
+                () -> assertTrue(neoForgeBuild.contains("../src/common/java")),
                 () -> assertTrue(neoForgeBuild.contains("neoForge {")),
                 () -> assertTrue(neoForgeBuild.contains("version = rootProject.neoforge_version")),
                 () -> assertFalse(neoForgeBuild.contains("parchment {")),

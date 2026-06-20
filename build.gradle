@@ -584,6 +584,106 @@ tasks.register("checkNeoForgeRuntimeLaunchBoundary") {
 	}
 }
 
+tasks.register("checkNeoForgeRuntimeStartupLoad") {
+	group = "verification"
+	description = "Launches the generated NeoForge server harness long enough to validate SignPort loader startup."
+
+	onlyIf {
+		project.findProject(":neoforge") != null
+	}
+
+	dependsOn("checkNeoForgeRuntimeLaunchBoundary")
+
+	doLast {
+		def neoForgeProject = project(":neoforge")
+		def classesDir = neoForgeProject.layout.buildDirectory.dir("classes/java/main").get().asFile
+		def resourcesDir = neoForgeProject.layout.buildDirectory.dir("resources/main").get().asFile
+		def moddevDir = neoForgeProject.layout.buildDirectory.dir("moddev").get().asFile
+		def runDir = neoForgeProject.layout.projectDirectory.dir("run/server").asFile
+		runDir.mkdirs()
+
+		def javaExecutableName = System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("windows") ? "java.exe" : "java"
+		def javaExecutable = new File(new File(System.getProperty("java.home"), "bin"), javaExecutableName)
+		def classpathArgs = new File(moddevDir, "serverRunClasspath.txt")
+		def vmArgs = new File(moddevDir, "serverRunVmArgs.txt")
+		def programArgs = new File(moddevDir, "serverRunProgramArgs.txt")
+		if (vmArgs.text.contains("-Dfml.modFolders")) {
+			throw new GradleException("NeoForge runtime startup check expects ModDev vm args not to define -Dfml.modFolders; the task supplies the generated SignPort mod folders explicitly.")
+		}
+		def modFolders = "signport%%${classesDir.absolutePath}${File.pathSeparator}signport%%${resourcesDir.absolutePath}"
+		def command = [
+				javaExecutable.absolutePath,
+				"@${classpathArgs.absolutePath}",
+				"@${vmArgs.absolutePath}",
+				"-Dfml.modFolders=${modFolders}",
+				"net.neoforged.devlaunch.Main",
+				"@${programArgs.absolutePath}"
+		]
+
+		def process = new ProcessBuilder(command.collect { it.toString() })
+				.directory(runDir)
+				.redirectErrorStream(true)
+				.start()
+		def output = Collections.synchronizedList([])
+		def readerThread = new Thread({
+			process.inputStream.withReader("UTF-8") { reader ->
+				reader.eachLine { line -> output.add(line) }
+			}
+		}, "signport-neoforge-runtime-output")
+		readerThread.daemon = true
+		readerThread.start()
+		def markerChecks = [
+				"metadata": { String text -> text.contains("SignPort ${project.version} (signport)") },
+				"mixin": { String text -> text.contains("SpongePowered MIXIN Subsystem") },
+				"mod classloader": { String text -> text.contains(" - signport (composite(folder(") },
+				"server started": { String text -> text.contains("Done (") },
+				"entrypoint event": { String text -> text.contains("[SignPort] No anchors loaded.") || text.contains("[SignPort] Loaded ") }
+		]
+		def foundMarkers = new LinkedHashSet<String>()
+		def deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(60)
+		while (System.nanoTime() < deadline && foundMarkers.size() < markerChecks.size()) {
+			def snapshot
+			synchronized (output) {
+				snapshot = output.join("\n")
+			}
+			markerChecks.each { name, check ->
+				if (!foundMarkers.contains(name) && check(snapshot)) {
+					foundMarkers.add(name)
+				}
+			}
+			if (foundMarkers.size() == markerChecks.size()) {
+				break
+			}
+			if (!process.isAlive()) {
+				break
+			}
+			Thread.sleep(250)
+		}
+
+		if (foundMarkers.size() == markerChecks.size()) {
+			process.outputStream.withWriter("UTF-8") { writer ->
+				writer.println("stop")
+				writer.flush()
+			}
+			if (!process.waitFor(20, java.util.concurrent.TimeUnit.SECONDS)) {
+				process.destroyForcibly()
+				throw new GradleException("NeoForge runtime startup markers were found, but the server did not stop cleanly within 20 seconds.")
+			}
+			readerThread.join(5000)
+			logger.lifecycle("NeoForge runtime startup/load check passed with markers: ${foundMarkers.join(", ")}")
+			return
+		}
+
+		if (process.isAlive()) {
+			process.destroyForcibly()
+		}
+		readerThread.join(5000)
+		def missing = markerChecks.keySet().findAll { !foundMarkers.contains(it) }
+		def tail = output.takeRight(80).join("\n")
+		throw new GradleException("NeoForge runtime startup marker(s) missing: ${missing.join(", ")}\n\nOutput tail:\n${tail}")
+	}
+}
+
 tasks.register("checkReleasePublishingSources") {
 	group = "verification"
 	description = "Checks release publishing scripts and workflows for marketplace upload safeguards."

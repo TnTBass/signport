@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class NeoForgeRuntimeValidationTest {
@@ -14,19 +15,33 @@ class NeoForgeRuntimeValidationTest {
     void rootBuildValidatesDeclaredNeoForgeRuntimeHarness() throws IOException {
         String build = Files.readString(repoPath("build.gradle"));
         String neoForgeBuild = Files.readString(repoPath("neoforge/build.gradle"));
+        String neoForgeMetadata = Files.readString(repoPath("src/neoforge/resources/META-INF/neoforge.mods.toml"));
 
         assertAll(
                 () -> assertTrue(neoForgeBuild.contains("mods {")),
                 () -> assertTrue(neoForgeBuild.contains("runs {")),
                 () -> assertTrue(neoForgeBuild.contains("server {")),
                 () -> assertTrue(neoForgeBuild.contains("server()")),
+                () -> assertTrue(neoForgeBuild.contains("../src/common/java")),
+                () -> assertTrue(neoForgeBuild.contains("rootProject.tasks.named(\"generateBuildInfo\")")),
                 () -> assertTrue(build.contains("checkNeoForgeRuntimeLaunchBoundary")),
+                () -> assertTrue(build.contains("checkNeoForgeRuntimeStartupLoad")),
+                () -> assertTrue(build.contains("NeoForge runtime startup marker")),
+                () -> assertTrue(build.contains("ModDev vm args not to define -Dfml.modFolders")),
+                () -> assertTrue(build.contains("readerThread.daemon = true")),
+                () -> assertTrue(build.contains("synchronized (output)")),
+                () -> assertTrue(build.contains("SpongePowered MIXIN Subsystem")),
+                () -> assertTrue(build.contains("Done (")),
+                () -> assertTrue(build.contains("destroyForcibly")),
+                () -> assertTrue(build.contains("TimeUnit.SECONDS")),
                 () -> assertTrue(build.contains("project(\":neoforge\").tasks.named(\"createLaunchScripts\")")),
                 () -> assertTrue(build.contains("taskNames.contains(\"runServer\")")),
                 () -> assertTrue(build.contains("runServer")),
                 () -> assertTrue(build.contains("serverRunClasspath.txt")),
                 () -> assertTrue(build.contains("-Dfml.modFolders=signport")),
-                () -> assertTrue(build.contains("net.neoforged.devlaunch.Main")));
+                () -> assertTrue(build.contains("net.neoforged.devlaunch.Main")),
+                () -> assertTrue(neoForgeMetadata.contains("[features.signport]")),
+                () -> assertFalse(neoForgeMetadata.contains("[[features.signport]]")));
     }
 
     private static Path repoPath(String path) {
