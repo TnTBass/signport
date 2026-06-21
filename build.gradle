@@ -10,6 +10,7 @@ base {
 	archivesName = "${project.archives_base_name}-fabric"
 }
 
+def publicModVersion = project.version.toString().split("\\+")[0]
 def generatedBuildInfoDir = layout.buildDirectory.dir("generated/sources/buildInfo/java/main")
 
 def resolveBuildNumber = {
@@ -92,7 +93,7 @@ sourceSets {
 	}
 	client {
 		java.setSrcDirs(["src/commonClient/java", "src/fabricClient/java"])
-		resources.setSrcDirs(["src/fabricClient/resources"])
+		resources.setSrcDirs(["src/commonClient/resources", "src/fabricClient/resources"])
 	}
 }
 
@@ -114,10 +115,10 @@ dependencies {
 }
 
 processResources {
-	inputs.property "version", project.version
+	inputs.property "displayVersion", publicModVersion
 
 	filesMatching("fabric.mod.json") {
-		expand "version": inputs.properties.version
+		expand "displayVersion": inputs.properties.displayVersion
 	}
 }
 
@@ -633,7 +634,7 @@ tasks.register("checkNeoForgeRuntimeStartupLoad") {
 		readerThread.daemon = true
 		readerThread.start()
 		def markerChecks = [
-				"metadata": { String text -> text.contains("SignPort ${project.version} (signport)") },
+				"metadata": { String text -> text.contains("SignPort ${publicModVersion} (signport)") },
 				"mixin": { String text -> text.contains("SpongePowered MIXIN Subsystem") },
 				"mod classloader": { String text -> text.contains(" - signport (composite(folder(") },
 				"server started": { String text -> text.contains("Done (") },

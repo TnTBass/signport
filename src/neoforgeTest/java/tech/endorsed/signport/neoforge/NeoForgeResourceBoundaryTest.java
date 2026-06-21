@@ -19,13 +19,15 @@ class NeoForgeResourceBoundaryTest {
         assertAll(
                 () -> assertTrue(Files.exists(repoRoot().resolve("src/common/resources/assets/signport/icon.png"))),
                 () -> assertFalse(Files.exists(repoRoot().resolve("src/common/resources/assets/signport/lang/en_us.json"))),
+                () -> assertTrue(Files.exists(repoRoot().resolve("src/commonClient/resources/assets/signport/lang/en_us.json"))),
                 () -> assertFalse(Files.exists(repoRoot().resolve("src/fabric/resources/assets/signport/icon.png"))),
                 () -> assertFalse(Files.exists(repoRoot().resolve("src/fabric/resources/assets/signport/lang/en_us.json"))),
-                () -> assertTrue(Files.exists(repoRoot().resolve("src/fabricClient/resources/assets/signport/lang/en_us.json"))),
+                () -> assertFalse(Files.exists(repoRoot().resolve("src/fabricClient/resources/assets/signport/lang/en_us.json"))),
                 // These are source-contract checks for the multiloader layout convention.
                 // Keep them exact so resource-root ownership changes are reviewed deliberately.
                 () -> assertTrue(fabricBuild.contains("resources.setSrcDirs([\"src/common/resources\", \"src/fabric/resources\"])")),
-                () -> assertTrue(neoForgeBuild.contains("resources.setSrcDirs([\"../src/common/resources\", \"../src/neoforge/resources\"])")),
+                () -> assertTrue(fabricBuild.contains("resources.setSrcDirs([\"src/commonClient/resources\", \"src/fabricClient/resources\"])")),
+                () -> assertTrue(neoForgeBuild.contains("resources.setSrcDirs([\"../src/common/resources\", \"../src/commonClient/resources\", \"../src/neoforge/resources\"])")),
                 () -> assertTrue(neoForgeBuild.contains("exclude \"fabric.mod.json\"")),
                 () -> assertTrue(neoForgeBuild.contains("exclude \"signport.mixins.json\"")));
     }

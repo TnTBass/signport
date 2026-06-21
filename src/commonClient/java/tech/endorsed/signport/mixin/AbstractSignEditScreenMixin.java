@@ -9,6 +9,7 @@ import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen;
+import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.core.registries.Registries;
@@ -44,8 +45,8 @@ public abstract class AbstractSignEditScreenMixin {
     private static final int SUGGESTION_WIDTH = 220;
     private static final int SUGGESTION_ROW_HEIGHT = 14;
     private static final int TEMPLATE_WIDTH = 300;
-    private static final int TEMPLATE_HEIGHT = 154;
-    private static final int TEMPLATE_FIELD_WIDTH = 196;
+    private static final int TEMPLATE_HEIGHT = 224;
+    private static final int TEMPLATE_FIELD_WIDTH = 220;
     private static final int TEMPLATE_FIELD_HEIGHT = 18;
     private static final int TEMPLATE_ROW_HEIGHT = 14;
 
@@ -107,9 +108,24 @@ public abstract class AbstractSignEditScreenMixin {
     private void signportHandleSuggestionKeys(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
         if (signportTemplateOpen) {
             signportSuggestions = List.of();
-            if (handleTemplateKeys(event)) {
-                cir.setReturnValue(true);
+            boolean handled = handleTemplateKeys(event);
+            if (!handled && event.key() == 258) {
+                if (signportTemplateTargetField.isFocused()) {
+                    focusTemplateField(signportTemplateLabelField);
+                } else {
+                    focusTemplateField(signportTemplateTargetField);
+                }
+                handled = true;
             }
+            if (!handled) {
+                handled = signportTemplateTargetField.keyPressed(event) || signportTemplateLabelField.keyPressed(event);
+            }
+            if (!handled && (event.key() == 257 || event.key() == 335)) {
+                applyTemplateDialog();
+            }
+            refreshTemplateSuggestions();
+            updateTemplateWidgetVisibility();
+            cir.setReturnValue(true);
             return;
         }
         refreshSuggestions();
@@ -160,12 +176,21 @@ public abstract class AbstractSignEditScreenMixin {
         refreshSuggestions();
     }
 
-    @Inject(method = "charTyped", at = @At("RETURN"))
-    private void signportAfterChar(CallbackInfoReturnable<Boolean> cir) {
+    @Inject(method = "charTyped", at = @At("HEAD"), cancellable = true)
+    private void signportHandleTemplateChar(CharacterEvent event, CallbackInfoReturnable<Boolean> cir) {
         if (signportTemplateOpen) {
+            signportTemplateTargetField.charTyped(event);
+            signportTemplateLabelField.charTyped(event);
             refreshTemplateSuggestions();
+            updateTemplateWidgetVisibility();
+            cir.setReturnValue(true);
             return;
         }
+    }
+
+    @Inject(method = "charTyped", at = @At("RETURN"))
+    private void signportAfterChar(CharacterEvent event, CallbackInfoReturnable<Boolean> cir) {
+        if (signportTemplateOpen) return;
         signportDismissed = false;
         refreshSuggestions();
     }
@@ -290,23 +315,23 @@ public abstract class AbstractSignEditScreenMixin {
         AbstractSignEditScreen screen = (AbstractSignEditScreen) (Object) this;
         signportTemplateLeft = (screen.width - TEMPLATE_WIDTH) / 2;
         signportTemplateTop = Math.max(28, (screen.height - TEMPLATE_HEIGHT) / 2);
-        int fieldX = signportTemplateLeft + 92;
-        signportTemplateTargetField = signportAddRenderableWidget(new EditBox(screen.getFont(), fieldX, signportTemplateTop + 34,
+        int fieldX = signportTemplateLeft + 40;
+        signportTemplateTargetField = signportAddRenderableWidget(new EditBox(screen.getFont(), fieldX, signportTemplateTop + 18,
                 TEMPLATE_FIELD_WIDTH, TEMPLATE_FIELD_HEIGHT, Component.literal("Target anchor")));
         signportTemplateTargetField.setMaxLength(64);
-        signportTemplateTargetField.setHint(Component.literal("Anchor"));
+        signportTemplateTargetField.setHint(Component.literal("Anchor name (line 3)"));
         signportTemplateTargetField.setResponder(ignored -> {
             rebuildTemplateDimensions();
             refreshTemplateSuggestions();
         });
-        signportTemplateDimensionButton = signportAddRenderableWidget(Button.builder(Component.literal("Dimension"),
+        signportTemplateDimensionButton = signportAddRenderableWidget(Button.builder(Component.literal("Dimension (line 4, optional)"),
                         button -> signportTemplateDimensionOpen = !signportTemplateDimensionOpen)
-                .bounds(fieldX, signportTemplateTop + 62, TEMPLATE_FIELD_WIDTH, TEMPLATE_FIELD_HEIGHT)
+                .bounds(fieldX, signportTemplateTop + 38, TEMPLATE_FIELD_WIDTH, TEMPLATE_FIELD_HEIGHT)
                 .build());
-        signportTemplateLabelField = signportAddRenderableWidget(new EditBox(screen.getFont(), fieldX, signportTemplateTop + 90,
+        signportTemplateLabelField = signportAddRenderableWidget(new EditBox(screen.getFont(), fieldX, signportTemplateTop + 58,
                 TEMPLATE_FIELD_WIDTH, TEMPLATE_FIELD_HEIGHT, Component.literal("Decoration line")));
         signportTemplateLabelField.setMaxLength(64);
-        signportTemplateLabelField.setHint(Component.literal("Optional"));
+        signportTemplateLabelField.setHint(Component.literal("Optional label (line 1)"));
         signportTemplateApplyButton = signportAddRenderableWidget(Button.builder(Component.literal("Apply"),
                         button -> applyTemplateDialog())
                 .bounds(signportTemplateLeft + TEMPLATE_WIDTH - 132, signportTemplateTop + TEMPLATE_HEIGHT - 28, 58, 20)
@@ -332,8 +357,7 @@ public abstract class AbstractSignEditScreenMixin {
         }
         refreshTemplateSuggestions();
         updateTemplateWidgetVisibility();
-        signportSetInitialFocus(signportTemplateTargetField);
-        signportTemplateTargetField.setFocused(true);
+        focusTemplateField(signportTemplateTargetField);
     }
 
     private void closeTemplateDialog() {
@@ -352,7 +376,7 @@ public abstract class AbstractSignEditScreenMixin {
                 signportTemplateLabelField.getValue(),
                 "[sp]",
                 anchorName,
-                selectedTemplateDimension().map(option -> option.dimension().identifier().toString()).orElse(""));
+                selectedTemplateDimension().map(option -> dimensionShortName(option.dimension())).orElse(""));
         for (int i = 0; i < templateLines.size(); i++) {
             line = i;
             signportSetMessage(templateLines.get(i));
@@ -515,12 +539,86 @@ public abstract class AbstractSignEditScreenMixin {
         graphics.outline(signportTemplateLeft, signportTemplateTop, TEMPLATE_WIDTH, TEMPLATE_HEIGHT, 0xFF6F8CAF);
         graphics.centeredText(net.minecraft.client.Minecraft.getInstance().font, Component.literal("SignPort Template"),
                 signportTemplateLeft + TEMPLATE_WIDTH / 2, signportTemplateTop + 10, 0xFFFFFFFF);
-        graphics.text(net.minecraft.client.Minecraft.getInstance().font, "Target", signportTemplateLeft + 14, signportTemplateTop + 39, 0xFFE0E0E0);
-        graphics.text(net.minecraft.client.Minecraft.getInstance().font, "Dimension", signportTemplateLeft + 14, signportTemplateTop + 67, 0xFFE0E0E0);
-        graphics.text(net.minecraft.client.Minecraft.getInstance().font, "Label", signportTemplateLeft + 14, signportTemplateTop + 95, 0xFFE0E0E0);
+        renderTemplateControls(graphics, mouseX, mouseY);
+        renderTemplateExample(graphics);
+        renderTemplateHelpTooltip(graphics, mouseX, mouseY);
 
         renderTemplateDimensionDropdown(graphics, mouseX, mouseY);
         renderTemplateSuggestionPopup(graphics, mouseX, mouseY);
+    }
+
+    private void renderTemplateControls(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        signportTemplateTargetField.extractRenderState(graphics, mouseX, mouseY, 0);
+        signportTemplateDimensionButton.extractRenderState(graphics, mouseX, mouseY, 0);
+        signportTemplateLabelField.extractRenderState(graphics, mouseX, mouseY, 0);
+        signportTemplateApplyButton.extractRenderState(graphics, mouseX, mouseY, 0);
+        signportTemplateCancelButton.extractRenderState(graphics, mouseX, mouseY, 0);
+    }
+
+    private void renderTemplateExample(GuiGraphicsExtractor graphics) {
+        int x = signportTemplateLeft + 40;
+        int y = signportTemplateTop + 78;
+        graphics.text(net.minecraft.client.Minecraft.getInstance().font, "Line 1: Any label (ignored)", x, y, 0xFFBFC9D6);
+        graphics.text(net.minecraft.client.Minecraft.getInstance().font, "Line 2: [sp]", x, y + 12, 0xFFBFC9D6);
+        graphics.text(net.minecraft.client.Minecraft.getInstance().font, "Line 3: Anchor name", x, y + 24, 0xFFBFC9D6);
+        graphics.text(net.minecraft.client.Minecraft.getInstance().font, "Line 4: Dimension or blank", x, y + 36, 0xFFBFC9D6);
+        renderTemplateSignPreview(graphics);
+    }
+
+    private void renderTemplateSignPreview(GuiGraphicsExtractor graphics) {
+        int x = signportTemplateLeft + 40;
+        int y = signportTemplateTop + 126;
+        int signTextColor = 0xFFFFF4C8;
+        graphics.fill(x + 102, y + 54, x + 118, y + 62, 0xFF6F4725);
+        graphics.fill(x, y, x + 220, y + 54, 0xFF6F4725);
+        graphics.fill(x + 4, y + 4, x + 216, y + 50, 0xFF8A582D);
+        graphics.fill(x + 10, y + 8, x + 210, y + 46, 0xFF9B6330);
+        graphics.outline(x, y, 220, 54, 0xFF4F321B);
+        drawCenteredSignText(graphics, "Home", x + 110, y + 6, signTextColor);
+        drawCenteredSignText(graphics, "[signport]", x + 110, y + 18, signTextColor);
+        drawCenteredSignText(graphics, "spawn", x + 110, y + 30, signTextColor);
+        drawCenteredSignText(graphics, "overworld", x + 110, y + 42, signTextColor);
+    }
+
+    private void drawCenteredSignText(GuiGraphicsExtractor graphics, String text, int centerX, int y, int color) {
+        net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
+        graphics.text(font, text, centerX - font.width(text) / 2, y, color);
+    }
+
+    private void renderTemplateHelpTooltip(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        if (hoverTemplateExampleLine(mouseX, mouseY, 1)) {
+            graphics.setComponentTooltipForNextFrame(net.minecraft.client.Minecraft.getInstance().font, List.of(
+                    Component.literal("Line 1 is arbitrary display text."),
+                    Component.literal("It does not affect portal creation.")
+            ), mouseX, mouseY);
+        } else if (hoverTemplateExampleLine(mouseX, mouseY, 2)) {
+            graphics.setComponentTooltipForNextFrame(net.minecraft.client.Minecraft.getInstance().font, List.of(
+                    Component.literal("Line 2 must be [sp] or [signport]."),
+                    Component.literal("This marks the sign as a SignPort portal.")
+            ), mouseX, mouseY);
+        } else if (hoverTemplateExampleLine(mouseX, mouseY, 3)) {
+            graphics.setComponentTooltipForNextFrame(net.minecraft.client.Minecraft.getInstance().font, List.of(
+                    Component.literal("Target is the anchor name for line 3."),
+                    Component.literal("Choose an existing anchor from suggestions.")
+            ), mouseX, mouseY);
+        } else if (hoverTemplateExampleLine(mouseX, mouseY, 4)) {
+            graphics.setComponentTooltipForNextFrame(net.minecraft.client.Minecraft.getInstance().font, List.of(
+                    Component.literal("Enter a dimension when the anchor is in a different dimension."),
+                    Component.literal("Leave it blank for the current dimension.")
+            ), mouseX, mouseY);
+        }
+    }
+
+    private void focusTemplateField(EditBox field) {
+        signportSetInitialFocus(field);
+        signportTemplateTargetField.setFocused(field == signportTemplateTargetField);
+        signportTemplateLabelField.setFocused(field == signportTemplateLabelField);
+    }
+
+    private boolean hoverTemplateExampleLine(int mouseX, int mouseY, int lineNumber) {
+        int x = signportTemplateLeft + 40;
+        int y = signportTemplateTop + 78 - 2 + (lineNumber - 1) * 12;
+        return mouseX >= x && mouseX < x + 210 && mouseY >= y && mouseY < y + 12;
     }
 
     private void renderTemplateSuggestionPopup(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {

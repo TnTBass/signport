@@ -6,6 +6,8 @@ plugins {
 version = rootProject.version
 group = rootProject.group
 
+def publicModVersion = rootProject.version.toString().split("\\+")[0]
+
 base {
 	archivesName = "${rootProject.archives_base_name}-neoforge"
 }
@@ -26,7 +28,7 @@ sourceSets {
 	main {
 		java.setSrcDirs(["../src/common/java", "../src/commonClient/java", "../src/neoforge/java", "../src/neoforgeClient/java"])
 		java.srcDir(rootProject.layout.buildDirectory.dir("generated/sources/buildInfo/java/main"))
-		resources.setSrcDirs(["../src/common/resources", "../src/neoforge/resources"])
+		resources.setSrcDirs(["../src/common/resources", "../src/commonClient/resources", "../src/neoforge/resources"])
 	}
 	test {
 		java.setSrcDirs(["../src/neoforgeTest/java"])
@@ -84,9 +86,9 @@ tasks.named("compileJava") {
 }
 
 processResources {
-	inputs.property "version", project.version
+	inputs.property "displayVersion", publicModVersion
 	filesMatching("META-INF/neoforge.mods.toml") {
-		expand "version": inputs.properties.version
+		expand "displayVersion": inputs.properties.displayVersion
 	}
 }
 

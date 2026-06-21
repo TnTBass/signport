@@ -79,12 +79,10 @@ public class SignPortFabricClient implements ClientModInitializer {
                 "key.signport.config",
                 InputConstants.UNKNOWN.getValue(),
                 SIGNPORT_CATEGORY));
-        if (SignPortClientConfig.get().browserKeybindEnabled) {
-            browserKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
-                    "key.signport.browser",
-                    InputConstants.KEY_J,
-                    SIGNPORT_CATEGORY));
-        }
+        browserKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+                "key.signport.browser",
+                InputConstants.KEY_J,
+                SIGNPORT_CATEGORY));
 
         ClientTickEvents.END_CLIENT_TICK.register(SignPortFabricClient::tick);
         SignPort.LOGGER.info("[SignPort] Client initialized.");
@@ -99,7 +97,9 @@ public class SignPortFabricClient implements ClientModInitializer {
         }
         if (browserKey != null) {
             while (browserKey.consumeClick()) {
-                openAnchorBrowser(client);
+                if (SignPortClientConfig.get().browserKeybindEnabled) {
+                    openAnchorBrowser(client);
+                }
             }
         }
         PortSignHudHint.tick(client);

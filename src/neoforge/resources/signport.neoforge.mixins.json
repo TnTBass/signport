@@ -6,6 +6,10 @@
 	"mixins": [
 		"SignBlockEntityMixin"
 	],
+	"client": [
+		"AbstractSignEditScreenMixin",
+		"ScreenAccessor"
+	],
 	"injectors": {
 		"defaultRequire": 1
 	}

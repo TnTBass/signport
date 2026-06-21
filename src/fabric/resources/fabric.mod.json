@@ -1,7 +1,7 @@
 {
 	"schemaVersion": 1,
 	"id": "signport",
-	"version": "${version}",
+	"version": "${displayVersion}",
 	"name": "SignPort",
 	"description": "A sign portal mod for quick travel between named anchors.",
 	"authors": [

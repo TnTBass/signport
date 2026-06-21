@@ -5,7 +5,7 @@ issueTrackerURL="https://github.com/TnTBass/signport/issues"
 
 [[mods]]
 modId="signport"
-version="${version}"
+version="${displayVersion}"
 displayName="SignPort"
 displayURL="https://github.com/TnTBass/signport"
 authors="TnTBass, approved"

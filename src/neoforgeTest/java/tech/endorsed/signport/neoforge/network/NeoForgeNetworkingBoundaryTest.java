@@ -88,7 +88,10 @@ class NeoForgeNetworkingBoundaryTest {
                 () -> assertTrue(source.contains("ClientPacketListener listener = client.getConnection()")),
                 () -> assertTrue(source.contains("((ICommonPacketListener) listener).hasChannel(StatusPayloads.REQUEST_ID)")),
                 () -> assertTrue(source.contains("((ICommonPacketListener) listener).hasChannel(AnchorSyncPayloads.READY_ID)")),
-                () -> assertFalse(source.contains("import net.minecraft.resources.Identifier")),
+                () -> assertTrue(source.contains("RegisterKeyMappingsEvent")),
+                () -> assertTrue(source.contains("event.register(browserKey)")),
+                () -> assertTrue(source.contains("IConfigScreenFactory")),
+                () -> assertTrue(source.contains("ModLoadingContext.get().registerExtensionPoint")),
                 () -> assertFalse(source.contains("net.fabricmc")));
     }
 }

@@ -45,7 +45,7 @@ public final class SignPortConfigScreen extends Screen {
                 .selected(hudHintEnabled)
                 .onValueChange((checkbox, selected) -> hudHintEnabled = selected)
                 .build());
-        addRenderableWidget(Checkbox.builder(Component.literal("Anchor browser keybind"), this.font)
+        addRenderableWidget(Checkbox.builder(Component.literal("Enable anchor browser keybind"), this.font)
                 .pos(left, layout.browserKeybindY())
                 .selected(browserKeybindEnabled)
                 .onValueChange((checkbox, selected) -> browserKeybindEnabled = selected)

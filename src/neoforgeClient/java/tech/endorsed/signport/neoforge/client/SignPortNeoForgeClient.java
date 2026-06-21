@@ -1,14 +1,21 @@
 package tech.endorsed.signport.neoforge.client;
 
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.KeyMapping.Category;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.resources.Identifier;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModList;
+import net.neoforged.fml.ModLoadingContext;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlersEvent;
 import net.neoforged.neoforge.common.NeoForge;
@@ -16,8 +23,10 @@ import net.neoforged.neoforge.common.extensions.ICommonPacketListener;
 import tech.endorsed.signport.SignPort;
 import tech.endorsed.signport.client.ScreenNavigation;
 import tech.endorsed.signport.client.SignPortClientState;
+import tech.endorsed.signport.client.config.ConfigScreenFactory;
 import tech.endorsed.signport.client.config.SignPortClientConfig;
 import tech.endorsed.signport.client.gui.AnchorBrowserScreen;
+import tech.endorsed.signport.client.hud.PortSignHudHint;
 import tech.endorsed.signport.network.AnchorSyncPayloads;
 import tech.endorsed.signport.network.SignPortStatusNetworking;
 import tech.endorsed.signport.network.StatusPayloads;
@@ -25,6 +34,16 @@ import tech.endorsed.signport.status.SignPortStatus;
 
 @Mod(value = SignPort.MOD_ID, dist = Dist.CLIENT)
 public final class SignPortNeoForgeClient {
+    private static final Category SIGNPORT_CATEGORY =
+            Category.register(Identifier.fromNamespaceAndPath(SignPort.MOD_ID, "signport"));
+    private static final KeyMapping configKey = new KeyMapping(
+            "key.signport.config",
+            InputConstants.UNKNOWN.getValue(),
+            SIGNPORT_CATEGORY);
+    private static final KeyMapping browserKey = new KeyMapping(
+            "key.signport.browser",
+            InputConstants.KEY_J,
+            SIGNPORT_CATEGORY);
     private static boolean initialSyncRequested = false;
     private static boolean statusPayloadReceived = false;
     private static int lastStatusRequestTick = SignPortStatusNetworking.NO_SERVER_VERSION_REQUEST_TICK;
@@ -38,10 +57,18 @@ public final class SignPortNeoForgeClient {
         AnchorBrowserScreen.installCreateAnchorSender(ClientPacketDistributor::sendToServer);
 
         modBus.addListener(SignPortNeoForgeClient::registerClientPayloadHandlers);
+        modBus.addListener(SignPortNeoForgeClient::registerKeyMappings);
         NeoForge.EVENT_BUS.addListener(SignPortNeoForgeClient::onClientTick);
         NeoForge.EVENT_BUS.addListener(SignPortNeoForgeClient::onClientLoggingIn);
         NeoForge.EVENT_BUS.addListener(SignPortNeoForgeClient::onClientLoggingOut);
+        ModLoadingContext.get().registerExtensionPoint(IConfigScreenFactory.class, () -> (container, parent) ->
+                ConfigScreenFactory.isAvailable() ? ConfigScreenFactory.create(parent) : parent);
         SignPort.LOGGER.info("[SignPort] NeoForge client initialized.");
+    }
+
+    private static void registerKeyMappings(RegisterKeyMappingsEvent event) {
+        event.register(configKey);
+        event.register(browserKey);
     }
 
     private static void registerClientPayloadHandlers(RegisterClientPayloadHandlersEvent event) {
@@ -84,6 +111,15 @@ public final class SignPortNeoForgeClient {
         requestServerVersionWhenReady(client);
         updateStatusDetection(client);
         requestInitialSyncWhenReady(client);
+        while (configKey.consumeClick()) {
+            openConfigScreen(client);
+        }
+        while (browserKey.consumeClick()) {
+            if (SignPortClientConfig.get().browserKeybindEnabled) {
+                openAnchorBrowser(client);
+            }
+        }
+        PortSignHudHint.tick(client);
     }
 
     private static void updateStatusDetection(Minecraft client) {
@@ -133,6 +169,16 @@ public final class SignPortNeoForgeClient {
                 ClientPacketDistributor.sendToServer(new AnchorSyncPayloads.Ready());
             }
         }
+    }
+
+    public static void openAnchorBrowser(Minecraft client) {
+        if (client.player == null) return;
+        ScreenNavigation.show(new AnchorBrowserScreen(null));
+    }
+
+    public static void openConfigScreen(Minecraft client) {
+        if (client.player == null) return;
+        ScreenNavigation.show(ConfigScreenFactory.create(null));
     }
 
     private static String resolveVersion() {

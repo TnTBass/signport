@@ -6,7 +6,8 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
-- Ported the Fabric and NeoForge build targets and loader metadata floors to Minecraft 26.2.
+- Added NeoForge support.
+- Updated to Minecraft 26.2.
 
 ## 2.2.3+mc26.1.2 - 2026-06-06
 

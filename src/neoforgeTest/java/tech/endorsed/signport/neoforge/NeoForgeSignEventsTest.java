@@ -55,6 +55,9 @@ class NeoForgeSignEventsTest {
         assertTrue(mixins.contains("\"minVersion\": \"0.8\""));
         assertTrue(mixins.contains("\"package\": \"tech.endorsed.signport.mixin\""));
         assertTrue(mixins.contains("\"SignBlockEntityMixin\""));
+        assertTrue(mixins.contains("\"client\""));
+        assertTrue(mixins.contains("\"AbstractSignEditScreenMixin\""));
+        assertTrue(mixins.contains("\"ScreenAccessor\""));
         assertTrue(mixins.contains("\"compatibilityLevel\": \"" + compatibilityLevel(fabricMixins) + "\""));
     }
 

@@ -1,5 +1,5 @@
 {
   "key.signport.config": "Open SignPort Settings",
   "key.signport.browser": "Open SignPort Anchors",
-  "category.signport.signport": "SignPort"
+  "key.category.signport.signport": "SignPort"
 }

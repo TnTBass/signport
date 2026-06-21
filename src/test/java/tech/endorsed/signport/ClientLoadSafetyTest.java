@@ -75,6 +75,8 @@ class ClientLoadSafetyTest {
     @Test
     void metadataTargetsMinecraft26Point2WithLoaderFloors() throws IOException {
         String properties = Files.readString(Path.of("gradle.properties"));
+        String buildGradle = Files.readString(Path.of("build.gradle"));
+        String neoForgeBuildGradle = Files.readString(Path.of("neoforge/build.gradle"));
         String fabricMetadata = Files.readString(Path.of("src/fabric/resources/fabric.mod.json"));
         String neoForgeMetadata = Files.readString(Path.of("src/neoforge/resources/META-INF/neoforge.mods.toml"));
 
@@ -83,6 +85,14 @@ class ClientLoadSafetyTest {
         assertTrue(properties.contains("mod_version=2.2.3+mc26.2"));
         assertTrue(properties.contains("fabric_version=0.152.2+26.2"));
         assertTrue(properties.contains("neoforge_version=26.2.0.6-beta"));
+        assertTrue(buildGradle.contains("publicModVersion"));
+        assertTrue(buildGradle.contains("project.version.toString().split(\"\\\\+\")[0]"));
+        assertTrue(neoForgeBuildGradle.contains("publicModVersion"));
+        assertTrue(neoForgeBuildGradle.contains("rootProject.version.toString().split(\"\\\\+\")[0]"));
+        assertTrue(fabricMetadata.contains("\"version\": \"${displayVersion}\""));
+        assertFalse(fabricMetadata.contains("\"version\": \"${version}\""));
+        assertTrue(neoForgeMetadata.contains("version=\"${displayVersion}\""));
+        assertFalse(neoForgeMetadata.contains("version=\"${version}\""));
         assertTrue(fabricMetadata.contains("\"fabricloader\": \">=0.19.3\""));
         assertTrue(fabricMetadata.contains("\"minecraft\": \">=26.2\""));
         assertTrue(neoForgeMetadata.contains("versionRange=\"[26.2.0.6-beta,)\""));
@@ -111,13 +121,90 @@ class ClientLoadSafetyTest {
         Matcher init = Pattern.compile("(?s)protected void init\\(\\) \\{.*?active = this;").matcher(browser);
         assertTrue(init.find());
         assertTrue(config.contains("ScreenNavigation.show(parent)"));
+        assertTrue(config.contains("Enable anchor browser keybind"));
         assertTrue(fabricClient.contains("ScreenNavigation.install(screen -> Minecraft.getInstance().setScreenAndShow(screen))"));
         assertTrue(neoForgeClient.contains("ScreenNavigation.install(screen -> Minecraft.getInstance().setScreenAndShow(screen))"));
         assertFalse(fabricClient.contains("client.screen"));
         assertTrue(fabricClient.contains("Keybind entrypoints open from gameplay"));
+        assertTrue(neoForgeClient.contains("RegisterKeyMappingsEvent"));
+        assertTrue(neoForgeClient.contains("event.register(configKey)"));
+        assertTrue(neoForgeClient.contains("event.register(browserKey)"));
+        assertFalse(fabricClient.contains("if (SignPortClientConfig.get().browserKeybindEnabled) {\n            browserKey = KeyMappingHelper.registerKeyMapping"));
+        assertFalse(neoForgeClient.contains("if (SignPortClientConfig.get().browserKeybindEnabled) {\n            browserKey = new KeyMapping"));
+        assertTrue(neoForgeClient.contains("while (configKey.consumeClick())"));
+        assertTrue(neoForgeClient.contains("while (browserKey.consumeClick())"));
+        assertTrue(fabricClient.contains("SignPortClientConfig.get().browserKeybindEnabled"));
+        assertTrue(neoForgeClient.contains("SignPortClientConfig.get().browserKeybindEnabled"));
+        assertTrue(fabricClient.contains("PortSignHudHint.tick(client)"));
+        assertTrue(neoForgeClient.contains("PortSignHudHint.tick(client)"));
+        assertTrue(neoForgeClient.contains("openConfigScreen(client)"));
+        assertTrue(neoForgeClient.contains("openAnchorBrowser(client)"));
+        assertTrue(neoForgeClient.contains("IConfigScreenFactory"));
+        assertTrue(neoForgeClient.contains("ModLoadingContext.get().registerExtensionPoint"));
+        assertTrue(neoForgeClient.contains("ConfigScreenFactory.create(parent)"));
         assertTrue(modMenu.contains("ConfigScreenFactory.create(parent)"));
         assertTrue(fabricClient.contains("AnchorBrowserScreen.active() instanceof AnchorBrowserScreen browser"));
         assertTrue(neoForgeClient.contains("AnchorBrowserScreen.active() instanceof AnchorBrowserScreen browser"));
+    }
+
+    @Test
+    void signTemplateDialogExplainsGeneratedSignFormat() throws IOException {
+        String signEditorMixin = Files.readString(Path.of(
+                "src/commonClient/java/tech/endorsed/signport/mixin/AbstractSignEditScreenMixin.java"));
+
+        assertFalse(signEditorMixin.contains("Example sign"));
+        assertTrue(signEditorMixin.contains("Line 1: Any label (ignored)"));
+        assertTrue(signEditorMixin.contains("Line 2: [sp]"));
+        assertTrue(signEditorMixin.contains("Line 3: Anchor name"));
+        assertTrue(signEditorMixin.contains("Line 4: Dimension or blank"));
+        assertTrue(signEditorMixin.contains("TEMPLATE_HEIGHT = 224"));
+        assertTrue(signEditorMixin.contains("signportTemplateTop + 78"));
+        assertTrue(signEditorMixin.contains("signportTemplateTop + 126"));
+        assertTrue(signEditorMixin.contains("signportHandleTemplateChar"));
+        assertTrue(signEditorMixin.contains("signportTemplateTargetField.charTyped(event)"));
+        assertTrue(signEditorMixin.contains("signportTemplateLabelField.charTyped(event)"));
+        assertTrue(signEditorMixin.contains("signportTemplateTargetField.keyPressed(event)"));
+        assertTrue(signEditorMixin.contains("signportTemplateLabelField.keyPressed(event)"));
+        assertTrue(signEditorMixin.contains("focusTemplateField(signportTemplateLabelField)"));
+        assertTrue(signEditorMixin.contains("event.key() == 257 || event.key() == 335"));
+        assertTrue(signEditorMixin.contains("renderTemplateControls"));
+        assertTrue(signEditorMixin.contains("signportTemplateTargetField.extractRenderState"));
+        assertTrue(signEditorMixin.indexOf("renderTemplateControls(graphics, mouseX, mouseY)")
+                > signEditorMixin.indexOf("graphics.fill(signportTemplateLeft, signportTemplateTop"));
+        assertTrue(signEditorMixin.indexOf("renderTemplateExample(graphics)")
+                > signEditorMixin.indexOf("renderTemplateControls(graphics, mouseX, mouseY)"));
+        assertTrue(signEditorMixin.contains("renderTemplateSignPreview"));
+        assertTrue(signEditorMixin.contains("\"Home\""));
+        assertTrue(signEditorMixin.contains("\"[signport]\""));
+        assertTrue(signEditorMixin.contains("\"spawn\""));
+        assertTrue(signEditorMixin.contains("\"overworld\""));
+        assertTrue(signEditorMixin.contains("selectedTemplateDimension().map(option -> dimensionShortName(option.dimension())).orElse(\"\")"));
+        assertTrue(signEditorMixin.contains("drawCenteredSignText"));
+        assertTrue(signEditorMixin.contains("font.width(text)"));
+        assertTrue(signEditorMixin.contains("0xFFFFF4C8"));
+        assertFalse(signEditorMixin.contains("0xFF24170D"));
+        assertFalse(signEditorMixin.contains("\"minecraft:the_nether\""));
+        assertTrue(signEditorMixin.contains("renderTemplateHelpTooltip"));
+        assertTrue(signEditorMixin.contains("hoverTemplateExampleLine"));
+        assertFalse(signEditorMixin.contains("hoverTemplateLabel"));
+        assertTrue(signEditorMixin.contains("Line 1 is arbitrary display text."));
+        assertTrue(signEditorMixin.contains("It does not affect portal creation."));
+        assertTrue(signEditorMixin.contains("Target is the anchor name for line 3."));
+        assertTrue(signEditorMixin.contains("Enter a dimension when the anchor is in a different dimension."));
+    }
+
+    @Test
+    void clientTranslationsAreSharedAcrossLoaders() throws IOException {
+        String fabricBuild = Files.readString(Path.of("build.gradle"));
+        String neoForgeBuild = Files.readString(Path.of("neoforge/build.gradle"));
+        Path commonLangPath = Path.of("src/commonClient/resources/assets/signport/lang/en_us.json");
+        String commonLang = Files.readString(commonLangPath);
+
+        assertTrue(fabricBuild.contains("resources.setSrcDirs([\"src/commonClient/resources\", \"src/fabricClient/resources\"])"));
+        assertTrue(neoForgeBuild.contains("resources.setSrcDirs([\"../src/common/resources\", \"../src/commonClient/resources\", \"../src/neoforge/resources\"])"));
+        assertFalse(Files.exists(Path.of("src/fabricClient/resources/assets/signport/lang/en_us.json")));
+        assertTrue(commonLang.contains("\"key.category.signport.signport\": \"SignPort\""));
+        assertFalse(commonLang.contains("\"category.signport.signport\""));
     }
 
     private static Map<String, List<String>> parseEntrypoints(String metadata) {
