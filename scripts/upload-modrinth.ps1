@@ -1,5 +1,7 @@
 param(
     [string] $Slug = "signport",
+    [ValidateSet("fabric", "neoforge")]
+    [string] $Loader = "fabric",
     [string] $Version = "",
     [string] $JarPath = "",
     [string] $SourcesJarPath = "",
@@ -24,11 +26,11 @@ if ([string]::IsNullOrWhiteSpace($Version)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($JarPath)) {
-    $JarPath = "build/libs/signport-fabric-$Version.jar"
-}
-
-if ([string]::IsNullOrWhiteSpace($SourcesJarPath)) {
-    $SourcesJarPath = "build/libs/signport-fabric-$Version-sources.jar"
+    $JarPath = if ($Loader -eq "fabric") {
+        "build/libs/signport-fabric-$Version.jar"
+    } else {
+        "neoforge/build/libs/signport-neoforge-$Version.jar"
+    }
 }
 
 $minecraftVersion = $Version -replace "^.*\+mc", ""
@@ -126,40 +128,55 @@ if (Test-Path -LiteralPath $listingDoc) {
     Write-Warning "[SignPort] docs/modrinth-listing.md not found — Modrinth project description was not synced."
 }
 
+$dependencies = @()
+if ($Loader -eq "fabric") {
+    $dependencies += @{
+        project_id = "P7dR8mSH"
+        version_id = $null
+        file_name = $null
+        dependency_type = "required"
+    }
+}
+
 $versionData = @{
     name = "SignPort $displayVersion for Minecraft $minecraftVersion"
     version_number = $Version
     changelog = Get-Changelog -Version $Version -Path $ChangelogPath
-    dependencies = @(
-        @{
-            project_id = "P7dR8mSH"
-            version_id = $null
-            file_name = $null
-            dependency_type = "required"
-        }
-    )
+    dependencies = $dependencies
     game_versions = @($minecraftVersion)
     version_type = "release"
-    loaders = @("fabric")
+    loaders = @($Loader)
     featured = $true
     status = "listed"
     project_id = $projectId
-    file_parts = @("file", "sources")
+    file_parts = @("file")
     primary_file = "file"
-} | ConvertTo-Json -Depth 10
+}
+
+if (![string]::IsNullOrWhiteSpace($SourcesJarPath)) {
+    $versionData.file_parts += "sources"
+}
+
+$versionData = $versionData | ConvertTo-Json -Depth 10
 $versionData | Set-Content -LiteralPath $versionDataPath -Encoding UTF8
 
 $jar = Get-Item -LiteralPath (Join-Path $root $JarPath)
-$sources = Get-Item -LiteralPath (Join-Path $root $SourcesJarPath)
 
-$versionResponse = & $curl -sS `
-    -X POST "https://api.modrinth.com/v2/version" `
-    -H "Authorization: $token" `
-    -H "User-Agent: TnTBass/signport Modrinth upload" `
-    -H "Accept: application/json" `
-    -F "data=<$versionDataPath;type=application/json" `
-    -F "file=@$($jar.FullName)" `
-    -F "sources=@$($sources.FullName)"
+$curlArgs = @(
+    "-sS",
+    "-X", "POST", "https://api.modrinth.com/v2/version",
+    "-H", "Authorization: $token",
+    "-H", "User-Agent: TnTBass/signport Modrinth upload",
+    "-H", "Accept: application/json",
+    "-F", "data=<$versionDataPath;type=application/json",
+    "-F", "file=@$($jar.FullName)"
+)
+if (![string]::IsNullOrWhiteSpace($SourcesJarPath)) {
+    $sources = Get-Item -LiteralPath (Join-Path $root $SourcesJarPath)
+    $curlArgs += @("-F", "sources=@$($sources.FullName)")
+}
+
+$versionResponse = & $curl @curlArgs
 
 if ($LASTEXITCODE -ne 0) {
     throw "curl failed while creating Modrinth version."

@@ -346,11 +346,12 @@ tasks.register("checkSourceHygiene") {
 				|| !releaseWorkflow.contains("./scripts/upload-modrinth.ps1")) {
 			throw new GradleException("Release workflow must publish each release build to Modrinth after creating the GitHub Release.")
 		}
-		if (!releaseWorkflow.contains("publish curseforge release")
+		if (!releaseWorkflow.contains("publish fabric curseforge release")
+				|| !releaseWorkflow.contains("publish neoforge curseforge release")
 				|| !releaseWorkflow.contains("CURSEFORGE_TOKEN")
 				|| !releaseWorkflow.contains("CURSEFORGE_PROJECT_ID")
 				|| !releaseWorkflow.contains("./scripts/upload-curseforge.ps1")) {
-			throw new GradleException("Release workflow must publish each release build to CurseForge after creating the GitHub Release.")
+			throw new GradleException("Release workflow must publish each loader release build to CurseForge after creating the GitHub Release.")
 		}
 
 		def modrinthUploadScript = file("scripts/upload-modrinth.ps1").text

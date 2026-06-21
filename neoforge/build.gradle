@@ -80,8 +80,16 @@ tasks.withType(Test).configureEach {
 	useJUnitPlatform()
 }
 
+java {
+	withSourcesJar()
+}
+
 tasks.named("compileJava") {
 	dependsOn rootProject.tasks.named("classes")
+	dependsOn rootProject.tasks.named("generateBuildInfo")
+}
+
+tasks.named("sourcesJar") {
 	dependsOn rootProject.tasks.named("generateBuildInfo")
 }
 

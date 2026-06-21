@@ -4,6 +4,23 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_ref:
+        description: 'Release tag to publish from, for example v2.3.0+mc26.2'
+        required: true
+      publish_target:
+        description: 'Publisher scope to run'
+        required: true
+        default: neoforge
+        type: choice
+        options:
+          - all
+          - neoforge
+
+env:
+  RELEASE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.release_ref || github.ref_name }}
+  PUBLISH_TARGET: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_target || 'all' }}
 
 permissions:
   contents: write
@@ -31,18 +48,20 @@ jobs:
         run: ./gradlew build
       - name: validate release tag
         run: |
-          if [[ ! "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+\+mc[0-9]+(\.[0-9]+)*$ ]]; then
+          if [[ ! "${RELEASE_REF}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+\+mc[0-9]+(\.[0-9]+)*$ ]]; then
             echo "Release tags must match v<major>.<minor>.<patch>+mc<mc-version>."
             exit 1
           fi
       - name: verify release artifacts
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          version="${RELEASE_REF#v}"
           test -f "build/libs/signport-fabric-${version}.jar"
           test -f "build/libs/signport-fabric-${version}-sources.jar"
+          test -f "neoforge/build/libs/signport-neoforge-${version}.jar"
+          test -f "neoforge/build/libs/signport-neoforge-${version}-sources.jar"
       - name: extract public changelog notes
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          version="${RELEASE_REF#v}"
           awk -v version="$version" '
             $0 == "## " version || index($0, "## " version " - ") == 1 {
               capture = 1
@@ -59,42 +78,80 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          version="${RELEASE_REF#v}"
           notes_args=(--generate-notes)
           if [ -s release-notes.md ]; then
             notes_args=(--notes-file release-notes.md)
           fi
 
-          gh release create "${GITHUB_REF_NAME}" \
-            "build/libs/signport-fabric-${version}.jar" \
-            "build/libs/signport-fabric-${version}-sources.jar" \
-            --title "${GITHUB_REF_NAME}" \
-            "${notes_args[@]}"
+          if gh release view "${RELEASE_REF}" >/dev/null 2>&1; then
+            gh release edit "${RELEASE_REF}" \
+              --title "${RELEASE_REF}" \
+              "${notes_args[@]}"
+            gh release upload "${RELEASE_REF}" --clobber \
+              "build/libs/signport-fabric-${version}.jar" \
+              "build/libs/signport-fabric-${version}-sources.jar" \
+              "neoforge/build/libs/signport-neoforge-${version}.jar" \
+              "neoforge/build/libs/signport-neoforge-${version}-sources.jar"
+          else
+            gh release create "${RELEASE_REF}" \
+              "build/libs/signport-fabric-${version}.jar" \
+              "build/libs/signport-fabric-${version}-sources.jar" \
+              "neoforge/build/libs/signport-neoforge-${version}.jar" \
+              "neoforge/build/libs/signport-neoforge-${version}-sources.jar" \
+              --title "${RELEASE_REF}" \
+              "${notes_args[@]}"
+          fi
       - name: publish modrinth release
         shell: pwsh
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
         run: |
-          $version = $env:GITHUB_REF_NAME.Substring(1)
+          $version = $env:RELEASE_REF.Substring(1)
+          if ($env:PUBLISH_TARGET -eq "all") {
+            ./scripts/upload-modrinth.ps1 `
+              -Slug "signport" `
+              -Loader "fabric" `
+              -Version $version `
+              -JarPath "build/libs/signport-fabric-$version.jar" `
+              -ChangelogPath "release-notes.md"
+          }
           ./scripts/upload-modrinth.ps1 `
             -Slug "signport" `
+            -Loader "neoforge" `
             -Version $version `
-            -JarPath "build/libs/signport-fabric-$version.jar" `
-            -SourcesJarPath "build/libs/signport-fabric-$version-sources.jar" `
+            -JarPath "neoforge/build/libs/signport-neoforge-$version.jar" `
             -ChangelogPath "release-notes.md"
-      - name: publish curseforge release
-        id: curseforge
+      - name: publish fabric curseforge release
+        if: ${{ env.PUBLISH_TARGET == 'all' }}
+        id: curseforge_fabric
         shell: pwsh
         env:
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
           CURSEFORGE_PROJECT_ID: ${{ secrets.CURSEFORGE_PROJECT_ID }}
         run: |
-          $version = $env:GITHUB_REF_NAME.Substring(1)
+          $version = $env:RELEASE_REF.Substring(1)
           ./scripts/upload-curseforge.ps1 `
             -Slug "signport" `
+            -Loader "fabric" `
             -Version $version `
             -JarPath "build/libs/signport-fabric-$version.jar" `
             -ChangelogPath "release-notes.md"
+      - name: publish neoforge curseforge release
+        id: curseforge_neoforge
+        shell: pwsh
+        env:
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+          CURSEFORGE_PROJECT_ID: ${{ secrets.CURSEFORGE_PROJECT_ID }}
+        run: |
+          $version = $env:RELEASE_REF.Substring(1)
+          ./scripts/upload-curseforge.ps1 `
+            -Slug "signport" `
+            -Loader "neoforge" `
+            -Version $version `
+            -JarPath "neoforge/build/libs/signport-neoforge-$version.jar" `
+            -ChangelogPath "release-notes.md"
       - name: report curseforge file ID
         run: |
-          echo "CurseForge file ID: ${{ steps.curseforge.outputs.curseforge_file_id }}"
+          echo "Fabric CurseForge file ID: ${{ steps.curseforge_fabric.outputs.curseforge_file_id }}"
+          echo "NeoForge CurseForge file ID: ${{ steps.curseforge_neoforge.outputs.curseforge_file_id }}"

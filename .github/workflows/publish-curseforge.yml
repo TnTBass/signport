@@ -7,6 +7,14 @@ on:
         description: 'Version without the leading v, for example 2.2.0+mc26.1.2'
         required: true
         type: string
+      loader:
+        description: 'Loader artifact to publish'
+        required: true
+        default: fabric
+        type: choice
+        options:
+          - fabric
+          - neoforge
 
 permissions:
   contents: read
@@ -34,7 +42,12 @@ jobs:
         shell: pwsh
         run: |
           $version = '${{ inputs.version }}'
-          $jar = "build/libs/signport-fabric-$version.jar"
+          $loader = '${{ inputs.loader }}'
+          $jar = if ($loader -eq "fabric") {
+            "build/libs/signport-fabric-$version.jar"
+          } else {
+            "neoforge/build/libs/signport-neoforge-$version.jar"
+          }
           if (-not (Test-Path -LiteralPath $jar)) {
             throw "Release artifact not found: $jar"
           }
@@ -69,10 +82,17 @@ jobs:
           CURSEFORGE_PROJECT_ID: ${{ secrets.CURSEFORGE_PROJECT_ID }}
         run: |
           $version = '${{ inputs.version }}'
+          $loader = '${{ inputs.loader }}'
+          $jar = if ($loader -eq "fabric") {
+            "build/libs/signport-fabric-$version.jar"
+          } else {
+            "neoforge/build/libs/signport-neoforge-$version.jar"
+          }
           ./scripts/upload-curseforge.ps1 `
             -Slug "signport" `
+            -Loader $loader `
             -Version $version `
-            -JarPath "build/libs/signport-fabric-$version.jar" `
+            -JarPath $jar `
             -ChangelogPath "release-notes.md"
       - name: report curseforge file ID
         run: |
