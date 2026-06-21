@@ -6,6 +6,8 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
+## 2.3.0+mc26.2 - 2026-06-21
+
 - Added NeoForge support.
 - Updated to Minecraft 26.2.
 

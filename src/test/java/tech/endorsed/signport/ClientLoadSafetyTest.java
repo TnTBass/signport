@@ -82,7 +82,7 @@ class ClientLoadSafetyTest {
 
         assertTrue(properties.contains("minecraft_version=26.2"));
         assertTrue(properties.contains("loader_version=0.19.3"));
-        assertTrue(properties.contains("mod_version=2.2.3+mc26.2"));
+        assertTrue(properties.contains("mod_version=2.3.0+mc26.2"));
         assertTrue(properties.contains("fabric_version=0.152.2+26.2"));
         assertTrue(properties.contains("neoforge_version=26.2.0.6-beta"));
         assertTrue(buildGradle.contains("publicModVersion"));
