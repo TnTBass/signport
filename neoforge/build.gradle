@@ -6,7 +6,7 @@ plugins {
 version = rootProject.version
 group = rootProject.group
 
-def publicModVersion = rootProject.version.toString().split("\\+")[0]
+def displayVersionProvider = rootProject.ext.signPortDisplayVersionProvider
 
 base {
 	archivesName = "${rootProject.archives_base_name}-neoforge"
@@ -94,9 +94,9 @@ tasks.named("sourcesJar") {
 }
 
 processResources {
-	inputs.property "displayVersion", publicModVersion
+	inputs.property "displayVersion", displayVersionProvider
 	filesMatching("META-INF/neoforge.mods.toml") {
-		expand "displayVersion": inputs.properties.displayVersion
+		expand "displayVersion": displayVersionProvider.get()
 	}
 }
 

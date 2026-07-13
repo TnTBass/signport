@@ -140,6 +140,8 @@ public final class AnchorBrowserScreen extends Screen {
         } else {
             int contentTop = contentTop();
             int contentBottom = contentBottom();
+            boolean canTeleport = canActivateTeleport(SignPortClientState.permissions());
+            boolean showTeleportDeniedTooltip = false;
             graphics.enableScissor(left, contentTop, left + PANEL_WIDTH, contentBottom);
             for (GroupHit group : groupHits) {
                 if (group.y() + GROUP_HEIGHT <= contentTop || group.y() >= contentBottom) continue;
@@ -150,18 +152,29 @@ public final class AnchorBrowserScreen extends Screen {
 
             for (RowHit row : rowHits) {
                 if (row.y() + ROW_HEIGHT <= contentTop || row.y() >= contentBottom) continue;
-                int color = row.contains(mouseX, mouseY) ? 0xFF333E4A : 0xFF1B1B1B;
+                boolean rowHovered = row.contains(mouseX, mouseY);
+                int color = rowHovered && canTeleport
+                        ? 0xFF333E4A : 0xFF1B1B1B;
                 graphics.fill(left, row.y(), left + PANEL_WIDTH, row.y() + ROW_HEIGHT - 1, color);
                 AnchorClient anchor = row.anchor();
                 graphics.text(this.font, rowTitle(anchor), left + 6, row.y() + 4, 0xFFFFFFFF);
                 graphics.text(this.font, rowMeta(anchor), left + 118, row.y() + 4, 0xFFB8B8B8);
-                if (showRawTeleportButton()) {
+                if (canTeleport) {
                     graphics.fill(row.teleportX(), row.y() + 3, row.teleportX() + 58, row.y() + 17, 0xFF29445F);
                     graphics.outline(row.teleportX(), row.y() + 3, 58, 14, 0xFF5988B8);
                     graphics.centeredText(this.font, Component.literal("teleport"), row.teleportX() + 29, row.y() + 6, 0xFFFFFFFF);
+                } else if (rowHovered) {
+                    showTeleportDeniedTooltip = true;
                 }
             }
             graphics.disableScissor();
+            if (showTeleportDeniedTooltip) {
+                graphics.setComponentTooltipForNextFrame(
+                        this.font,
+                        List.of(Component.literal(teleportPermissionTooltip())),
+                        mouseX,
+                        mouseY);
+            }
         }
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         if (createDialogOpen) {
@@ -257,13 +270,8 @@ public final class AnchorBrowserScreen extends Screen {
             for (RowHit row : rowHits) {
                 if (row.y() + ROW_HEIGHT <= contentTop || row.y() >= contentBottom) continue;
                 if (row.contains(mouseX, mouseY)) {
-                    if (showRawTeleportButton() && row.teleportContains(mouseX, mouseY)) {
-                        sendCommand("execute in %s run tp @s %d %d %d".formatted(
-                                row.anchor().dimension().identifier(),
-                                row.anchor().pos().getX(), row.anchor().pos().getY(), row.anchor().pos().getZ()));
-                    } else {
-                        sendCommand(rowClickCommand(row.anchor()));
-                    }
+                    if (!canActivateTeleport(SignPortClientState.permissions())) return true;
+                    sendCommand(rowClickCommand(row.anchor()));
                     onClose();
                     return true;
                 }
@@ -587,8 +595,12 @@ public final class AnchorBrowserScreen extends Screen {
                 || groupKey(anchor).toLowerCase(Locale.ROOT).contains(needle);
     }
 
-    private boolean showRawTeleportButton() {
-        return SignPortClientState.permissions().canDeleteAnchor();
+    static boolean canActivateTeleport(AnchorSyncPayloads.PermissionSnapshot permissions) {
+        return permissions.canUseTeleportCommand();
+    }
+
+    static String teleportPermissionTooltip() {
+        return "Permission denied: requires signport.teleport.command";
     }
 
     private void sendCommand(String command) {
@@ -603,7 +615,7 @@ public final class AnchorBrowserScreen extends Screen {
     }
 
     static String rowClickCommand(AnchorClient anchor) {
-        return "execute in %s run sp tp %s".formatted(anchor.dimension().identifier(), commandString(anchor.name()));
+        return "sp tp %s %s".formatted(commandString(anchor.name()), anchor.dimension().identifier());
     }
 
     private static String commandString(String value) {
@@ -715,10 +727,6 @@ public final class AnchorBrowserScreen extends Screen {
 
         int teleportX() {
             return x + width - 64;
-        }
-
-        boolean teleportContains(double mouseX, double mouseY) {
-            return mouseX >= teleportX() && mouseX < teleportX() + 58 && mouseY >= y + 3 && mouseY < y + 17;
         }
     }
 

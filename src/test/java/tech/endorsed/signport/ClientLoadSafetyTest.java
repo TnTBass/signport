@@ -82,13 +82,14 @@ class ClientLoadSafetyTest {
 
         assertTrue(properties.contains("minecraft_version=26.2"));
         assertTrue(properties.contains("loader_version=0.19.3"));
-        assertTrue(properties.contains("mod_version=2.3.0+mc26.2"));
+        assertTrue(properties.contains("mod_version=2.3.1+mc26.2"));
         assertTrue(properties.contains("fabric_version=0.152.2+26.2"));
         assertTrue(properties.contains("neoforge_version=26.2.0.6-beta"));
         assertTrue(buildGradle.contains("publicModVersion"));
         assertTrue(buildGradle.contains("project.version.toString().split(\"\\\\+\")[0]"));
-        assertTrue(neoForgeBuildGradle.contains("publicModVersion"));
-        assertTrue(neoForgeBuildGradle.contains("rootProject.version.toString().split(\"\\\\+\")[0]"));
+        assertTrue(buildGradle.contains("displayVersionProvider"));
+        assertTrue(buildGradle.contains("buildNumberProvider"));
+        assertTrue(neoForgeBuildGradle.contains("rootProject.ext.signPortDisplayVersionProvider"));
         assertTrue(fabricMetadata.contains("\"version\": \"${displayVersion}\""));
         assertFalse(fabricMetadata.contains("\"version\": \"${version}\""));
         assertTrue(neoForgeMetadata.contains("version=\"${displayVersion}\""));

@@ -4,6 +4,9 @@ Internal repo, build, workflow, and release-process changes are documented here.
 
 ## Unreleased
 
+## 2.3.1+mc26.2 - 2026-07-13
+
+- Embedded the version plus a unique build identifier in both loader manifests, including a dirty-content fingerprint for uncommitted local test builds.
 - Retargeted the multiloader Fabric and NeoForge local build inputs and runtime-validation metadata to Minecraft 26.2.
 - Added a bounded NeoForge runtime startup/load check that launches the local ModDev server harness, verifies SignPort metadata, mixin, classloader, server-start, and entrypoint markers, then stops the server.
 - Added a local NeoForge ModDev server run harness and strengthened the runtime/load boundary check to validate the generated runServer launch script and SignPort mod-folder wiring.

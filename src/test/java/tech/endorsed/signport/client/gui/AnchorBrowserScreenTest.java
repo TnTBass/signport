@@ -6,8 +6,11 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import org.junit.jupiter.api.Test;
 import tech.endorsed.signport.client.AnchorClient;
+import tech.endorsed.signport.network.AnchorSyncPayloads;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AnchorBrowserScreenTest {
     private static final ResourceKey<Level> OVERWORLD = ResourceKey.create(
@@ -26,17 +29,29 @@ class AnchorBrowserScreenTest {
     }
 
     @Test
-    void rowClickCommandRunsSignPortTeleportInAnchorDimension() {
+    void rowClickCommandUsesDimensionQualifiedSignPortTeleportWithoutExecute() {
         AnchorClient anchor = new AnchorClient("EndBase", new BlockPos(12, 70, -31), THE_END, "", 1234L);
 
-        assertEquals("execute in minecraft:the_end run sp tp \"EndBase\"", AnchorBrowserScreen.rowClickCommand(anchor));
+        assertEquals("sp tp \"EndBase\" minecraft:the_end", AnchorBrowserScreen.rowClickCommand(anchor));
     }
 
     @Test
     void rowClickCommandQuotesAnchorNamesWithSpaces() {
         AnchorClient anchor = new AnchorClient("End Base", new BlockPos(12, 70, -31), THE_END, "", 1234L);
 
-        assertEquals("execute in minecraft:the_end run sp tp \"End Base\"", AnchorBrowserScreen.rowClickCommand(anchor));
+        assertEquals("sp tp \"End Base\" minecraft:the_end", AnchorBrowserScreen.rowClickCommand(anchor));
+    }
+
+    @Test
+    void browserTeleportActionsUseTeleportPermissionRatherThanDeletePermission() {
+        var teleportOnly = new AnchorSyncPayloads.PermissionSnapshot(false, false, false, false, false, true);
+        var deleteOnly = new AnchorSyncPayloads.PermissionSnapshot(false, false, false, true, false, false);
+
+        assertTrue(AnchorBrowserScreen.canActivateTeleport(teleportOnly));
+        assertFalse(AnchorBrowserScreen.canActivateTeleport(deleteOnly));
+        assertEquals(
+                "Permission denied: requires signport.teleport.command",
+                AnchorBrowserScreen.teleportPermissionTooltip());
     }
 
     @Test

@@ -6,6 +6,10 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## Unreleased
 
+## 2.3.1+mc26.2 - 2026-07-13
+
+- Fixed anchor browser row clicks and the Teleport button for non-OP players on Fabric and NeoForge. Browser teleports now use `signport.teleport.command` instead of requiring vanilla `/execute`. Browser clearly shows permission denied when `signport.teleport.command` is not allowed.
+
 ## 2.3.0+mc26.2 - 2026-06-21
 
 - Added NeoForge support.

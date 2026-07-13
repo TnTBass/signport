@@ -13,6 +13,36 @@ base {
 def publicModVersion = project.version.toString().split("\\+")[0]
 def generatedBuildInfoDir = layout.buildDirectory.dir("generated/sources/buildInfo/java/main")
 
+def runGit = { List<String> arguments ->
+	try {
+		Process process = new ProcessBuilder(["git"] + arguments)
+				.directory(rootDir)
+				.redirectErrorStream(true)
+				.start()
+		String output = process.inputStream.getText("UTF-8").trim()
+		return process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS) && process.exitValue() == 0
+				? output
+				: null
+	} catch (Exception ignored) {
+		return null
+	}
+}
+
+def resolveDirtyFingerprint = {
+	String diff = runGit(["diff", "--binary", "HEAD", "--"]) ?: ""
+	String untracked = runGit(["ls-files", "--others", "--exclude-standard"]) ?: ""
+	def digest = java.security.MessageDigest.getInstance("SHA-256")
+	digest.update(diff.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+	untracked.readLines().sort().each { String relativePath ->
+		digest.update(relativePath.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+		File file = new File(rootDir, relativePath)
+		if (file.isFile()) {
+			digest.update(file.bytes)
+		}
+	}
+	return digest.digest().encodeHex().toString().substring(0, 8)
+}
+
 def resolveBuildNumber = {
 	if (project.hasProperty("buildNumber")) {
 		String propertyBuildNumber = project.property("buildNumber").toString().trim()
@@ -26,27 +56,21 @@ def resolveBuildNumber = {
 		return githubRunNumber.trim()
 	}
 
-	try {
-		Process process = new ProcessBuilder("git", "rev-parse", "--short", "HEAD")
-				.directory(rootDir)
-				.redirectErrorStream(true)
-				.start()
-		if (process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)) {
-			String gitCommit = process.inputStream.getText("UTF-8").trim()
-			if (process.exitValue() == 0 && !gitCommit.isEmpty()) {
-				return gitCommit
-			}
-		} else {
-			process.destroyForcibly()
+	String gitCommit = runGit(["rev-parse", "--short", "HEAD"])
+	if (gitCommit != null && !gitCommit.isEmpty()) {
+		String gitStatus = runGit(["status", "--porcelain", "--untracked-files=normal"])
+		if (gitStatus != null && !gitStatus.isEmpty()) {
+			return "${gitCommit}.dirty.${resolveDirtyFingerprint()}"
 		}
-	} catch (Exception ignored) {
-		// Fall through to a stable local-development value when git is unavailable.
+		return gitCommit
 	}
 
 	return "dev"
 }
 
 def buildNumberProvider = providers.provider { resolveBuildNumber() }
+def displayVersionProvider = providers.provider { "${publicModVersion}+${buildNumberProvider.get()}" }
+ext.signPortDisplayVersionProvider = displayVersionProvider
 
 def javaStringLiteral = { String value ->
 	return value
@@ -115,10 +139,10 @@ dependencies {
 }
 
 processResources {
-	inputs.property "displayVersion", publicModVersion
+	inputs.property "displayVersion", displayVersionProvider
 
 	filesMatching("fabric.mod.json") {
-		expand "displayVersion": inputs.properties.displayVersion
+		expand "displayVersion": displayVersionProvider.get()
 	}
 }
 
@@ -635,7 +659,7 @@ tasks.register("checkNeoForgeRuntimeStartupLoad") {
 		readerThread.daemon = true
 		readerThread.start()
 		def markerChecks = [
-				"metadata": { String text -> text.contains("SignPort ${publicModVersion} (signport)") },
+				"metadata": { String text -> text.contains("SignPort ${displayVersionProvider.get()} (signport)") },
 				"mixin": { String text -> text.contains("SpongePowered MIXIN Subsystem") },
 				"mod classloader": { String text -> text.contains(" - signport (composite(folder(") },
 				"server started": { String text -> text.contains("Done (") },

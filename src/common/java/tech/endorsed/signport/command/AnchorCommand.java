@@ -10,12 +10,17 @@ import com.mojang.brigadier.tree.LiteralCommandNode;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.commands.arguments.IdentifierArgument;
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import net.minecraft.server.permissions.PermissionLevel;
@@ -40,6 +45,8 @@ import java.util.Optional;
 import static net.minecraft.commands.Commands.literal;
 
 public class AnchorCommand {
+    static final String TELEPORT_PERMISSION_DENIED =
+            "Permission denied: you need signport.teleport.command to teleport with SignPort.";
     private static final SimpleCommandExceptionType CREATE_FAILED_EXCEPTION
             = new SimpleCommandExceptionType(Component.translatable("commands.anchor.create.failed"));
     private static final SimpleCommandExceptionType NAME_CLASH_EXCEPTION
@@ -92,10 +99,14 @@ public class AnchorCommand {
         LiteralCommandNode<CommandSourceStack> literalCommandNode = dispatcher.register(
                 literal("signport")
                         .then(literal("tp")
-                            .requires(SignPortPermissions::canUseTeleportCommand)
                             .then(Commands.argument("name", StringArgumentType.string())
                                 .suggests(ANCHOR_NAME_SUGGESTIONS)
-                                .executes(context -> teleportAnchor(context.getSource(), StringArgumentType.getString(context, "name")))))
+                                .executes(context -> teleportAnchor(context.getSource(), StringArgumentType.getString(context, "name")))
+                                .then(Commands.argument("dimension", IdentifierArgument.id())
+                                        .executes(context -> teleportAnchor(
+                                                context.getSource(),
+                                                StringArgumentType.getString(context, "name"),
+                                                IdentifierArgument.getId(context, "dimension"))))))
                         .then(literal("anchor")
                                 .then(literal("list")
                                         .requires(SignPortPermissions::canListAnchors)
@@ -188,10 +199,33 @@ public class AnchorCommand {
     }
 
     private static int teleportAnchor(CommandSourceStack source, String name) {
+        if (!SignPortPermissions.canUseTeleportCommand(source)) {
+            return denyTeleport(source);
+        }
+        return teleportAnchorAuthorized(source, name, source.getLevel());
+    }
+
+    private static int teleportAnchor(CommandSourceStack source, String name, Identifier dimensionId) {
+        if (!SignPortPermissions.canUseTeleportCommand(source)) {
+            return denyTeleport(source);
+        }
+        ServerLevel world = source.getServer().getLevel(ResourceKey.create(Registries.DIMENSION, dimensionId));
+        if (world == null) {
+            source.sendFailure(Component.literal("Could not find dimension '%s'".formatted(dimensionId)));
+            return 0;
+        }
+
+        return teleportAnchorAuthorized(source, name, world);
+    }
+
+    private static int denyTeleport(CommandSourceStack source) {
+        source.sendFailure(Component.literal(TELEPORT_PERMISSION_DENIED));
+        return 0;
+    }
+
+    private static int teleportAnchorAuthorized(CommandSourceStack source, String name, ServerLevel world) {
         var player = source.getPlayer();
         if (player == null) return 0;
-
-        var world = source.getLevel();
 
         Optional<Anchor> anchor = AnchorState.peekServerState(source.getServer())
                 .flatMap(s -> s.findAnchor(name, world.dimension()));

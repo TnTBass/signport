@@ -23,9 +23,10 @@ Players can teleport to an anchor by name:
 
 ```text
 /signport tp <name>
+/signport tp <name> <dimension>
 ```
 
-The shorter `/sp` alias can be used in place of `/signport`.
+The optional dimension selects an anchor in that dimension, including when an anchor with the same name exists elsewhere. Without it, SignPort uses the player's current dimension. The shorter `/sp` alias can be used in place of `/signport`.
 
 `/sp anchor create <name> <group>` stores the group as metadata; portal signs still reference only `<name>`. `/sp anchor setgroup <name> <group>` moves an existing anchor between groups without changing the sign-facing anchor name. Use `-` or `""` as the group to move an anchor back to `(ungrouped)`.
 
@@ -46,7 +47,7 @@ BlueMap is optional. When BlueMap is installed, SignPort publishes anchors as ma
 The same SignPort jar also includes an optional Fabric client mod. Vanilla clients still work normally: servers only send SignPort client payloads to clients that advertise the channel. When both sides have SignPort, the client receives anchor and permission sync data for the features below.
 
 - Looking at a portal sign shows a small hotbar lookup hint for the resolved anchor.
-- Press `J` to open the SignPort anchor browser. It has dimension tabs, search, name/distance/recent sorting, collapsible group sections, and click-to-run `/sp tp <name>` rows. Players with anchor delete permission also see a raw `/tp @s <x> <y> <z>` shortcut.
+- Press `J` to open the SignPort anchor browser. It has dimension tabs, search, name/distance/recent sorting, collapsible group sections, and dimension-aware teleport rows. Players with `signport.teleport.command` see an explicit Teleport button and can also click the row; without that permission, the browser remains browse-only and sends no teleport command.
 - While editing a portal sign, line 3 autocompletes anchor names from the synced cache. If line 4 contains a dimension id, suggestions are scoped to that dimension; otherwise suggestions include their dimension in parentheses.
 
 ### Sign template form
