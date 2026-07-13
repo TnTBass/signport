@@ -130,7 +130,7 @@ dependencies {
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 	clientImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 	include(implementation("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}"))
-	compileOnly "de.bluecolored:bluemap-api:2.7.8"
+	compileOnly "de.bluecolored:bluemap-api:2.8.0"
 	compileOnly "maven.modrinth:modmenu:19.0.0-alpha.1"
 	clientCompileOnly "maven.modrinth:modmenu:19.0.0-alpha.1"
 
