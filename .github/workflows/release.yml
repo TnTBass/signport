@@ -114,14 +114,14 @@ jobs:
               -Loader "fabric" `
               -Version $version `
               -JarPath "build/libs/signport-fabric-$version.jar" `
-              -ChangelogPath "release-notes.md"
+              -ChangelogPath "changelogs/$version/fabric.md"
           }
           ./scripts/upload-modrinth.ps1 `
             -Slug "signport" `
             -Loader "neoforge" `
             -Version $version `
             -JarPath "neoforge/build/libs/signport-neoforge-$version.jar" `
-            -ChangelogPath "release-notes.md"
+            -ChangelogPath "changelogs/$version/neoforge.md"
       - name: publish fabric curseforge release
         if: ${{ env.PUBLISH_TARGET == 'all' }}
         id: curseforge_fabric
@@ -136,7 +136,7 @@ jobs:
             -Loader "fabric" `
             -Version $version `
             -JarPath "build/libs/signport-fabric-$version.jar" `
-            -ChangelogPath "release-notes.md"
+            -ChangelogPath "changelogs/$version/fabric.md"
       - name: publish neoforge curseforge release
         id: curseforge_neoforge
         shell: pwsh
@@ -150,7 +150,7 @@ jobs:
             -Loader "neoforge" `
             -Version $version `
             -JarPath "neoforge/build/libs/signport-neoforge-$version.jar" `
-            -ChangelogPath "release-notes.md"
+            -ChangelogPath "changelogs/$version/neoforge.md"
       - name: report curseforge file ID
         run: |
           echo "Fabric CurseForge file ID: ${{ steps.curseforge_fabric.outputs.curseforge_file_id }}"

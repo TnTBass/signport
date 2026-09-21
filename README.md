@@ -144,6 +144,8 @@ git push origin main v1.1.0+mc26.1.2
 
 Pushing the tag runs the release workflow. It builds with Java 25, creates a GitHub Release, attaches the remapped mod jar and sources jar from `build/libs`, and publishes the same build to Modrinth and CurseForge.
 
+GitHub uses the versioned public `CHANGELOG.md` section. Modrinth and CurseForge use `changelogs/<version>/fabric.md` or `neoforge.md` when provided, otherwise they use the public changelog. Manual uploads use the same selection; an explicit `-ChangelogPath` overrides it.
+
 The workflow requires these repository secrets:
 
 | Secret | Purpose |

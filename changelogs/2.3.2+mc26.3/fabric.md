@@ -1,0 +1,1 @@
+- Updated compatibility to Minecraft 26.3 for Fabric.

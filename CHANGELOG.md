@@ -8,7 +8,7 @@ This project uses SemVer-style mod versions. Release entries should include the 
 
 ## 2.3.2+mc26.3 - 2026-09-21
 
-- Updated Fabric and NeoForge builds to Minecraft 26.3, including portal sign interactions, protection, HUD lookup, and the optional client screens.
+- Updated compatibility to Minecraft 26.3 for Fabric and NeoForge.
 
 ## 2.3.1+mc26.2 - 2026-07-13
 

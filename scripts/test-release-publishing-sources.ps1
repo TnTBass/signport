@@ -10,7 +10,7 @@ function Get-Text {
     if (-not (Test-Path -LiteralPath $path)) {
         throw "$RelativePath is missing."
     }
-    return Get-Content -Raw -LiteralPath $path
+    return Get-Content -Raw -LiteralPath $path -Encoding UTF8
 }
 
 function Assert-Contains {
@@ -121,6 +121,51 @@ function Test-PowerShellPublishingScriptsParse {
     [scriptblock]::Create((Get-Text 'scripts/upload-curseforge.ps1')) | Out-Null
 }
 
+function Test-LoaderSpecificReleaseNotes {
+    # Load only each publisher's note-reading function, never its API/upload code.
+    $root = $RepoRoot
+    foreach ($publisher in @('upload-modrinth.ps1', 'upload-curseforge.ps1')) {
+        $tokens = $null
+        $parseErrors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseInput(
+            (Get-Text "scripts/$publisher"), [ref]$tokens, [ref]$parseErrors)
+        if ($parseErrors.Count -gt 0) { throw "$publisher has parse errors." }
+        $function = $ast.Find({
+            param($node)
+            $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Get-Changelog'
+        }, $true)
+        . ([scriptblock]::Create($function.Extent.Text))
+
+        foreach ($Loader in @('fabric', 'neoforge')) {
+            $label = if ($Loader -eq 'fabric') { 'Fabric' } else { 'NeoForge' }
+            $expected = "- Updated compatibility to Minecraft 26.3 for $label."
+            foreach ($path in @('', "changelogs/2.3.2+mc26.3/$Loader.md")) {
+                $actual = Get-Changelog -Version '2.3.2+mc26.3' -Path $path
+                if ($actual -cne $expected) { throw "$publisher selected incorrect $Loader release notes: $actual" }
+            }
+
+            $fallback = Get-Changelog -Version '2.3.1+mc26.2' -Path "changelogs/2.3.1+mc26.2/$Loader.md"
+            Assert-Contains $fallback '- Fixed anchor browser row clicks' "$publisher must retain public changelog fallback for older releases."
+        }
+
+        $Loader = 'fabric'
+        $explicit = Get-Changelog -Version '2.3.2+mc26.3' -Path 'changelogs/2.3.2+mc26.3/neoforge.md'
+        if ($explicit -cne '- Updated compatibility to Minecraft 26.3 for NeoForge.') {
+            throw "$publisher must honor explicit -ChangelogPath."
+        }
+    }
+
+    $workflow = Get-Text '.github/workflows/release.yml'
+    foreach ($loader in @('fabric', 'neoforge')) {
+        $pattern = '-Loader "' + $loader + '"[\s\S]*?-ChangelogPath "changelogs/\$version/' + $loader + '\.md"'
+        if ([regex]::Matches($workflow, $pattern).Count -ne 2) {
+            throw "Both marketplaces must receive $loader release notes."
+        }
+    }
+    Assert-Contains $workflow '--notes-file release-notes.md' 'GitHub must retain the combined public notes.'
+    Assert-Contains (Get-Text '.github/workflows/publish-curseforge.yml') '-ChangelogPath "changelogs/$version/$loader.md"' 'CurseForge retries must use loader-specific notes.'
+}
+
 Test-CurseForgeUploadReportsVerifiedFileId
 Test-ReleaseWorkflowUsesRealCurseForgeSlug
 Test-ReleaseWorkflowUsesLoaderQualifiedMultiloaderArtifacts
@@ -128,5 +173,6 @@ Test-CurseForgeOnlyPublishWorkflow
 Test-UploadScriptDefaultsUseLoaderQualifiedFabricArtifacts
 Test-MavenPublicationKeepsStableArtifactId
 Test-PowerShellPublishingScriptsParse
+Test-LoaderSpecificReleaseNotes
 
 Write-Host 'release publishing source tests passed'

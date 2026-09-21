@@ -93,7 +93,7 @@ jobs:
             -Loader $loader `
             -Version $version `
             -JarPath $jar `
-            -ChangelogPath "release-notes.md"
+            -ChangelogPath "changelogs/$version/$loader.md"
       - name: report curseforge file ID
         run: |
           echo "CurseForge file ID: ${{ steps.curseforge.outputs.curseforge_file_id }}"

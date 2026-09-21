@@ -46,10 +46,18 @@ function Get-Changelog {
         [string] $Path
     )
 
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        $Path = "changelogs/$Version/$Loader.md"
+    }
+
     if (![string]::IsNullOrWhiteSpace($Path)) {
         $resolvedPath = Join-Path $root $Path
         if (Test-Path -LiteralPath $resolvedPath) {
-            $content = ((Get-Content -Raw -LiteralPath $resolvedPath) ?? "").Trim()
+            $content = Get-Content -Raw -LiteralPath $resolvedPath
+            if ($null -eq $content) {
+                $content = ""
+            }
+            $content = $content.Trim()
             if (![string]::IsNullOrWhiteSpace($content)) {
                 return $content
             }
