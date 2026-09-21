@@ -45,6 +45,8 @@ function Test-CurseForgeUploadReportsVerifiedFileId {
     Assert-Contains $script '$curseForgeFile.id' 'CurseForge upload must require the returned CurseForge file ID before reporting success.'
     Assert-Contains $script 'curseforge_file_id' 'CurseForge upload must write the returned file ID to GITHUB_OUTPUT.'
     Assert-Contains $script 'CurseForgeFileId' 'CurseForge upload logs must print the returned file ID for verification.'
+    Assert-Contains $script 'Get-CurseForgeGameVersionId -GameVersions $gameVersions -Name "Client"' 'CurseForge uploads must declare the supported Client environment.'
+    Assert-Contains $script 'Get-CurseForgeGameVersionId -GameVersions $gameVersions -Name "Server"' 'CurseForge uploads must declare the supported Server environment.'
 }
 
 function Test-ReleaseWorkflowUsesRealCurseForgeSlug {
@@ -89,6 +91,8 @@ function Test-CurseForgeOnlyPublishWorkflow {
     Assert-NotContains $workflow '-JarPath "build/libs/signport-$version.jar"' 'CurseForge-only workflow must not use the unqualified Fabric jar name.'
     Assert-NotContains $workflow 'upload-modrinth.ps1' 'CurseForge-only workflow must not republish Modrinth.'
     Assert-NotContains $workflow 'gh release create' 'CurseForge-only workflow must not create another GitHub Release.'
+    Assert-Contains $workflow 'gh release download "v$version"' 'CurseForge retries must use the original published release artifact.'
+    Assert-NotContains $workflow './gradlew' 'CurseForge retries must not rebuild jars with a different embedded build identifier.'
     Assert-NotContains $workflow '-Slug "modern-signport"' 'CurseForge-only workflow must not report the old constructed CurseForge slug.'
 }
 

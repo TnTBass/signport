@@ -4,6 +4,8 @@ Internal repo, build, workflow, and release-process changes are documented here.
 
 ## Unreleased
 
+- Added required Client/Server environment metadata to CurseForge uploads and made CurseForge retries reuse the original GitHub release jars.
+
 ## 2.3.2+mc26.3 - 2026-09-21
 
 - Updated the Fabric/NeoForge build toolchains and optional ModMenu API for Minecraft 26.3; constrained loader metadata to the supported Minecraft 26.3 series.

@@ -146,6 +146,8 @@ $metadata = @{
     gameVersions = @(
         Get-CurseForgeGameVersionId -GameVersions $gameVersions -Name $minecraftVersion
         Get-CurseForgeGameVersionId -GameVersions $gameVersions -Name $loaderGameVersion
+        Get-CurseForgeGameVersionId -GameVersions $gameVersions -Name "Client"
+        Get-CurseForgeGameVersionId -GameVersions $gameVersions -Name "Server"
     )
     releaseType = "release"
 }
