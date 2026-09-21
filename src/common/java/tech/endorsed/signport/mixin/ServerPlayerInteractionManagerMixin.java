@@ -12,6 +12,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.entity.SignText;
+import net.minecraft.world.level.block.entity.SignTextSlot;
 import net.minecraft.world.phys.BlockHitResult;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -38,8 +39,8 @@ public class ServerPlayerInteractionManagerMixin {
             return;
         }
 
-        SignText primaryText = sign.getText(sign.isFacingFrontText(player));
-        SignText secondaryText = sign.isFacingFrontText(player) ? sign.getBackText() : sign.getFrontText();
+        SignText primaryText = sign.getText(sign.getSlotPlayerIsFacing(player));
+        SignText secondaryText = sign.getSlotPlayerIsFacing(player) == SignTextSlot.FRONT ? sign.getText(SignTextSlot.BACK) : sign.getText(SignTextSlot.FRONT);
         PortSignEntity.PortalDestination destination = PortSignEntity.resolvePortalDestination(world, primaryText, secondaryText);
 
         if (destination.valid() && !SignPortPermissions.canUseSign(player)) {

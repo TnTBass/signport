@@ -35,7 +35,7 @@ class NeoForgeSignEventsTest {
         assertTrue(adapter.contains("PortSignEntity.isSignPortSign(back)"));
         assertTrue(adapter.contains("PortSignEntity.resolvePortalDestination(level, primaryText, secondaryText)"));
         assertTrue(adapter.contains("PortSignEntity.teleportToDestination(player, destination, primaryText, secondaryText)"));
-        assertTrue(adapter.contains("sign.isFacingFrontText(player)"));
+        assertTrue(adapter.contains("sign.getSlotPlayerIsFacing(player)"));
         assertTrue(adapter.contains("event.cancelWithResult(InteractionResult.FAIL)"));
         assertTrue(adapter.contains("event.cancelWithResult(InteractionResult.SUCCESS)"));
         assertInOrder(

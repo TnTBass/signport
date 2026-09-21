@@ -4,6 +4,10 @@ Internal repo, build, workflow, and release-process changes are documented here.
 
 ## Unreleased
 
+## 2.3.2+mc26.3 - 2026-09-21
+
+- Updated the Fabric/NeoForge build toolchains and optional ModMenu API for Minecraft 26.3; constrained loader metadata to the supported Minecraft 26.3 series.
+
 ## 2.3.1+mc26.2 - 2026-07-13
 
 - Embedded the version plus a unique build identifier in both loader manifests, including a dirty-content fingerprint for uncommitted local test builds.

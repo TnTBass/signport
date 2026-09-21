@@ -71,7 +71,7 @@ public class PortSignEntity {
     public static boolean isSignPortSign(SignText activeText) {
         if (activeText == null) return false;
 
-        return PortSignFormat.isPortalMarker(activeText.getMessage(1, false).getString());
+        return PortSignFormat.isPortalMarker(activeText.getMessages(false).get(1).getString());
     }
 
     public static boolean isValidPortSign(Level world, SignText activeText) {
@@ -83,7 +83,7 @@ public class PortSignEntity {
 
         if (!isSignPortSign(activeText)) return new PortalDestination(false, null, world, activeText);
 
-        String line2 = PortSignFormat.normalizeLine(activeText.getMessage(2, false).getString());
+        String line2 = PortSignFormat.normalizeLine(activeText.getMessages(false).get(2).getString());
 
         Optional<AnchorState> stateOpt = AnchorState.peekServerState(world.getServer());
         if (stateOpt.isEmpty()) return new PortalDestination(false, null, world, activeText);
@@ -95,7 +95,7 @@ public class PortSignEntity {
         ResourceKey<Level> targetDimension = world.dimension();
 
         if (SignPortConfig.get().crossDimensionPortalSigns()) {
-            var dimensionId = PortSignFormat.parseDimensionId(activeText.getMessage(3, false).getString());
+            var dimensionId = PortSignFormat.parseDimensionId(activeText.getMessages(false).get(3).getString());
             if (dimensionId != null) {
                 ServerLevel specifiedWorld = world.getServer().getLevel(ResourceKey.create(Registries.DIMENSION, dimensionId));
                 if (specifiedWorld != null) {
@@ -121,7 +121,7 @@ public class PortSignEntity {
     }
 
     public static void updatePortLink(SignText activeText, boolean foundAnchor) {
-        MutableComponent text = (MutableComponent) activeText.getMessage(1, false);
+        MutableComponent text = (MutableComponent) activeText.getMessages(false).get(1);
         if (foundAnchor) {
             text.setStyle(text.getStyle().withColor(0x2FDD48));
         } else if (isSignPortSign(activeText)) {

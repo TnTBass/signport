@@ -73,18 +73,18 @@ class ClientLoadSafetyTest {
     }
 
     @Test
-    void metadataTargetsMinecraft26Point2WithLoaderFloors() throws IOException {
+    void metadataTargetsMinecraft26Point3WithBoundedCompatibility() throws IOException {
         String properties = Files.readString(Path.of("gradle.properties"));
         String buildGradle = Files.readString(Path.of("build.gradle"));
         String neoForgeBuildGradle = Files.readString(Path.of("neoforge/build.gradle"));
         String fabricMetadata = Files.readString(Path.of("src/fabric/resources/fabric.mod.json"));
         String neoForgeMetadata = Files.readString(Path.of("src/neoforge/resources/META-INF/neoforge.mods.toml"));
 
-        assertTrue(properties.contains("minecraft_version=26.2"));
-        assertTrue(properties.contains("loader_version=0.19.3"));
-        assertTrue(properties.contains("mod_version=2.3.1+mc26.2"));
-        assertTrue(properties.contains("fabric_version=0.152.2+26.2"));
-        assertTrue(properties.contains("neoforge_version=26.2.0.6-beta"));
+        assertTrue(properties.contains("minecraft_version=26.3"));
+        assertTrue(properties.contains("loader_version=0.19.5"));
+        assertTrue(properties.contains("mod_version=2.3.2+mc26.3"));
+        assertTrue(properties.contains("fabric_version=0.161.0+26.3"));
+        assertTrue(properties.contains("neoforge_version=26.3.0.8-beta"));
         assertTrue(buildGradle.contains("publicModVersion"));
         assertTrue(buildGradle.contains("project.version.toString().split(\"\\\\+\")[0]"));
         assertTrue(buildGradle.contains("displayVersionProvider"));
@@ -94,11 +94,11 @@ class ClientLoadSafetyTest {
         assertFalse(fabricMetadata.contains("\"version\": \"${version}\""));
         assertTrue(neoForgeMetadata.contains("version=\"${displayVersion}\""));
         assertFalse(neoForgeMetadata.contains("version=\"${version}\""));
-        assertTrue(fabricMetadata.contains("\"fabricloader\": \">=0.19.3\""));
-        assertTrue(fabricMetadata.contains("\"minecraft\": \">=26.2\""));
-        assertTrue(neoForgeMetadata.contains("versionRange=\"[26.2.0.6-beta,)\""));
-        assertTrue(neoForgeMetadata.contains("versionRange=\"[26.2,)\""));
-        assertFalse(neoForgeMetadata.contains("versionRange=\"[26.2]\""));
+        assertTrue(fabricMetadata.contains("\"fabricloader\": \">=0.19.5\""));
+        assertTrue(fabricMetadata.contains("\"minecraft\": \"~26.3\""));
+        assertTrue(neoForgeMetadata.contains("versionRange=\"[26.3.0.8-beta,26.4)\""));
+        assertTrue(neoForgeMetadata.contains("versionRange=\"[26.3,26.4)\""));
+        assertFalse(neoForgeMetadata.contains("versionRange=\"[26.3]\""));
     }
 
     @Test
@@ -167,7 +167,7 @@ class ClientLoadSafetyTest {
         assertTrue(signEditorMixin.contains("signportTemplateTargetField.keyPressed(event)"));
         assertTrue(signEditorMixin.contains("signportTemplateLabelField.keyPressed(event)"));
         assertTrue(signEditorMixin.contains("focusTemplateField(signportTemplateLabelField)"));
-        assertTrue(signEditorMixin.contains("event.key() == 257 || event.key() == 335"));
+        assertTrue(signEditorMixin.contains("event.key() == InputConstants.KEY_RETURN || event.key() == InputConstants.KEY_NUMPADENTER"));
         assertTrue(signEditorMixin.contains("renderTemplateControls"));
         assertTrue(signEditorMixin.contains("signportTemplateTargetField.extractRenderState"));
         assertTrue(signEditorMixin.indexOf("renderTemplateControls(graphics, mouseX, mouseY)")

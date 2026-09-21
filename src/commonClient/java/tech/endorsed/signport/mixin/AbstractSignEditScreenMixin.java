@@ -1,5 +1,6 @@
 package tech.endorsed.signport.mixin;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
@@ -12,6 +13,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.PreeditEvent;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -109,7 +111,7 @@ public abstract class AbstractSignEditScreenMixin {
         if (signportTemplateOpen) {
             signportSuggestions = List.of();
             boolean handled = handleTemplateKeys(event);
-            if (!handled && event.key() == 258) {
+            if (!handled && event.key() == InputConstants.KEY_TAB) {
                 if (signportTemplateTargetField.isFocused()) {
                     focusTemplateField(signportTemplateLabelField);
                 } else {
@@ -120,7 +122,7 @@ public abstract class AbstractSignEditScreenMixin {
             if (!handled) {
                 handled = signportTemplateTargetField.keyPressed(event) || signportTemplateLabelField.keyPressed(event);
             }
-            if (!handled && (event.key() == 257 || event.key() == 335)) {
+            if (!handled && (event.key() == InputConstants.KEY_RETURN || event.key() == InputConstants.KEY_NUMPADENTER)) {
                 applyTemplateDialog();
             }
             refreshTemplateSuggestions();
@@ -132,7 +134,7 @@ public abstract class AbstractSignEditScreenMixin {
         if (signportSuggestions.isEmpty()) return;
 
         switch (event.key()) {
-            case 264 -> {
+            case InputConstants.KEY_DOWN -> {
                 signportSelectedSuggestion = (signportSelectedSuggestion + 1) % signportSuggestions.size();
                 if (signportSelectedSuggestion == 0) {
                     signportScrollOffset = 0;
@@ -141,7 +143,7 @@ public abstract class AbstractSignEditScreenMixin {
                 }
                 cir.setReturnValue(true);
             }
-            case 265 -> {
+            case InputConstants.KEY_UP -> {
                 signportSelectedSuggestion = (signportSelectedSuggestion + signportSuggestions.size() - 1) % signportSuggestions.size();
                 if (signportSelectedSuggestion == signportSuggestions.size() - 1) {
                     signportScrollOffset = Math.max(0, signportSuggestions.size() - MAX_SUGGESTIONS);
@@ -150,11 +152,11 @@ public abstract class AbstractSignEditScreenMixin {
                 }
                 cir.setReturnValue(true);
             }
-            case 258, 257 -> {
+            case InputConstants.KEY_TAB, InputConstants.KEY_RETURN -> {
                 acceptSuggestion(signportSuggestions.get(signportSelectedSuggestion));
                 cir.setReturnValue(true);
             }
-            case 256 -> {
+            case InputConstants.KEY_ESCAPE -> {
                 signportDismissed = true;
                 signportSuggestions = List.of();
                 cir.setReturnValue(true);
@@ -170,7 +172,7 @@ public abstract class AbstractSignEditScreenMixin {
             refreshTemplateSuggestions();
             return;
         }
-        if (event.key() != 256 && event.key() != 258 && event.key() != 257 && event.key() != 264 && event.key() != 265) {
+        if (event.key() != InputConstants.KEY_ESCAPE && event.key() != InputConstants.KEY_TAB && event.key() != InputConstants.KEY_RETURN && event.key() != InputConstants.KEY_DOWN && event.key() != InputConstants.KEY_UP) {
             signportDismissed = false;
         }
         refreshSuggestions();
@@ -193,6 +195,15 @@ public abstract class AbstractSignEditScreenMixin {
         if (signportTemplateOpen) return;
         signportDismissed = false;
         refreshSuggestions();
+    }
+
+    @Inject(method = "preeditUpdated", at = @At("HEAD"), cancellable = true)
+    private void signportHandleTemplatePreedit(PreeditEvent event, CallbackInfoReturnable<Boolean> cir) {
+        if (signportTemplateOpen) {
+            EditBox focused = signportTemplateTargetField.isFocused()
+                    ? signportTemplateTargetField : signportTemplateLabelField;
+            cir.setReturnValue(focused.preeditUpdated(event));
+        }
     }
 
     @Inject(method = "extractRenderState", at = @At("TAIL"))
@@ -365,6 +376,9 @@ public abstract class AbstractSignEditScreenMixin {
         signportTemplateDimensionOpen = false;
         signportTemplateSuggestions = List.of();
         updateTemplateWidgetVisibility();
+        AbstractSignEditScreen screen = (AbstractSignEditScreen) (Object) this;
+        screen.setFocused(null);
+        net.minecraft.client.Minecraft.getInstance().onTextInputFocusChange(screen, true);
     }
 
     private void applyTemplateDialog() {
@@ -386,7 +400,7 @@ public abstract class AbstractSignEditScreenMixin {
     }
 
     private boolean handleTemplateKeys(KeyEvent event) {
-        if (event.key() == 256) {
+        if (event.key() == InputConstants.KEY_ESCAPE) {
             closeTemplateDialog();
             return true;
         }
@@ -395,7 +409,7 @@ public abstract class AbstractSignEditScreenMixin {
         if (signportTemplateSuggestions.isEmpty()) return false;
 
         switch (event.key()) {
-            case 264 -> {
+            case InputConstants.KEY_DOWN -> {
                 signportTemplateSelectedSuggestion = (signportTemplateSelectedSuggestion + 1) % signportTemplateSuggestions.size();
                 if (signportTemplateSelectedSuggestion == 0) {
                     signportTemplateScrollOffset = 0;
@@ -404,7 +418,7 @@ public abstract class AbstractSignEditScreenMixin {
                 }
                 return true;
             }
-            case 265 -> {
+            case InputConstants.KEY_UP -> {
                 signportTemplateSelectedSuggestion = (signportTemplateSelectedSuggestion + signportTemplateSuggestions.size() - 1)
                         % signportTemplateSuggestions.size();
                 if (signportTemplateSelectedSuggestion == signportTemplateSuggestions.size() - 1) {
@@ -414,7 +428,7 @@ public abstract class AbstractSignEditScreenMixin {
                 }
                 return true;
             }
-            case 258, 257 -> {
+            case InputConstants.KEY_TAB, InputConstants.KEY_RETURN -> {
                 acceptTemplateSuggestion(signportTemplateSuggestions.get(signportTemplateSelectedSuggestion));
                 return true;
             }
@@ -611,8 +625,6 @@ public abstract class AbstractSignEditScreenMixin {
 
     private void focusTemplateField(EditBox field) {
         signportSetInitialFocus(field);
-        signportTemplateTargetField.setFocused(field == signportTemplateTargetField);
-        signportTemplateLabelField.setFocused(field == signportTemplateLabelField);
     }
 
     private boolean hoverTemplateExampleLine(int mouseX, int mouseY, int lineNumber) {

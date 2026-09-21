@@ -9,6 +9,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.entity.SignText;
+import net.minecraft.world.level.block.entity.SignTextSlot;
 import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -34,11 +35,11 @@ public abstract class SignBlockEntityMixin extends BlockEntity {
 	}
 
 	@Inject(at = @At("HEAD"), method = "updateSignText", cancellable = true)
-	private void onTryChangeText(Player player, boolean front, List<FilteredText> messages, CallbackInfo ci) {
+	private void onTryChangeText(Player player, SignTextSlot slot, List<FilteredText> messages, CallbackInfo ci) {
 		if (this.getLevel() == null || this.getLevel().isClientSide()) return;
 
-		SignText activeText = front ? this.frontText : this.backText;
-		SignText inactiveText = front ? this.backText : this.frontText;
+		SignText activeText = slot == SignTextSlot.FRONT ? this.frontText : this.backText;
+		SignText inactiveText = slot == SignTextSlot.FRONT ? this.backText : this.frontText;
 		boolean existingPortalSign = PortSignEntity.isSignPortSign(activeText) || PortSignEntity.isSignPortSign(inactiveText);
 		boolean requestedPortalSign = isPortalSignText(messages);
 
@@ -55,11 +56,11 @@ public abstract class SignBlockEntityMixin extends BlockEntity {
 	}
 
 	@Inject(at = @At("RETURN"), method = "updateText")
-	private void onSignChange(UnaryOperator<SignText> textChanger, boolean front, CallbackInfoReturnable<Boolean> cir) {
+	private void onSignChange(UnaryOperator<SignText> textChanger, SignTextSlot slot, CallbackInfoReturnable<Boolean> cir) {
 		if (cir.isCancelled()) return;
 		if (this.getLevel() == null || this.getLevel().isClientSide()) return;
 
-		SignText activeText = front ? this.frontText : this.backText;
+		SignText activeText = slot == SignTextSlot.FRONT ? this.frontText : this.backText;
 
 		boolean foundAnchor = PortSignEntity.isValidPortSign(this.getLevel(), activeText);
 

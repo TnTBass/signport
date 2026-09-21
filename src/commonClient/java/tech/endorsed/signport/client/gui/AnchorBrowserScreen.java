@@ -1,5 +1,6 @@
 package tech.endorsed.signport.client.gui;
 import net.minecraft.client.Minecraft;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
@@ -293,31 +294,31 @@ public final class AnchorBrowserScreen extends Screen {
     @Override
     public boolean keyPressed(KeyEvent event) {
         if (createDialogOpen) {
-            if (event.key() == 256) {
+            if (event.key() == InputConstants.KEY_ESCAPE) {
                 closeCreateDialog();
                 return true;
             }
-            if (event.key() == 257 || event.key() == 335) {
+            if (event.key() == InputConstants.KEY_RETURN || event.key() == InputConstants.KEY_NUMPADENTER) {
                 submitCreateDialog();
                 return true;
             }
             if (createGroupField.isFocused() && !createGroupSuggestions.isEmpty()) {
-                if (event.key() == 264) {
+                if (event.key() == InputConstants.KEY_DOWN) {
                     selectedGroupSuggestion = Math.min(createGroupSuggestions.size() - 1, selectedGroupSuggestion + 1);
                     return true;
                 }
-                if (event.key() == 265) {
+                if (event.key() == InputConstants.KEY_UP) {
                     selectedGroupSuggestion = Math.max(0, selectedGroupSuggestion - 1);
                     return true;
                 }
-                if (event.key() == 258) {
+                if (event.key() == InputConstants.KEY_TAB) {
                     applySelectedGroupSuggestion();
                     return true;
                 }
             }
             return createNameField.keyPressed(event) || createGroupField.keyPressed(event) || super.keyPressed(event);
         }
-        if (event.key() == 256) {
+        if (event.key() == InputConstants.KEY_ESCAPE) {
             onClose();
             return true;
         }
@@ -434,9 +435,8 @@ public final class AnchorBrowserScreen extends Screen {
         createPending = false;
         createServerRejected = false;
         createStatusMessage = "";
-        createNameField.setFocused(false);
-        createGroupField.setFocused(false);
         updateCreateWidgetVisibility();
+        setFocused(searchBox);
     }
 
     private void submitCreateDialog() {
@@ -528,8 +528,6 @@ public final class AnchorBrowserScreen extends Screen {
 
     private void focusCreateField(EditBox field) {
         setFocused(field);
-        createNameField.setFocused(field == createNameField);
-        createGroupField.setFocused(field == createGroupField);
     }
 
     private void updateCreateWidgetVisibility() {

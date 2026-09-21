@@ -45,17 +45,17 @@ public final class PortSignHudHint {
             return;
         }
 
-        SignText text = sign.getText(sign.isFacingFrontText(client.player));
-        if (!PortSignFormat.isPortalMarker(text.getMessage(1, false).getString())) {
+        SignText text = sign.getText(sign.getSlotPlayerIsFacing(client.player));
+        if (!PortSignFormat.isPortalMarker(text.getMessages(false).get(1).getString())) {
             clear();
             return;
         }
 
         LookKey lookKey = new LookKey(
                 hit.getBlockPos(),
-                text.getMessage(1, false).getString(),
-                text.getMessage(2, false).getString(),
-                text.getMessage(3, false).getString(),
+                text.getMessages(false).get(1).getString(),
+                text.getMessages(false).get(2).getString(),
+                text.getMessages(false).get(3).getString(),
                 client.level.dimension());
         if (!lookKey.equals(lastLookKey)) {
             lastLookKey = lookKey;

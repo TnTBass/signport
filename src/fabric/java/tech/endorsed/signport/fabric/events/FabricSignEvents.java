@@ -8,6 +8,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.entity.SignText;
+import net.minecraft.world.level.block.entity.SignTextSlot;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 import tech.endorsed.signport.permission.SignPortPermissions;
@@ -19,8 +20,8 @@ public class FabricSignEvents implements PlayerBlockBreakEvents.Before {
         if (!(blockEntity instanceof SignBlockEntity)) return true;
         if (SignPortPermissions.canBreakSign(player)) return true;
 
-        SignText front = ((SignBlockEntity) blockEntity).getFrontText();
-        SignText back = ((SignBlockEntity) blockEntity).getBackText();
+        SignText front = ((SignBlockEntity) blockEntity).getText(SignTextSlot.FRONT);
+        SignText back = ((SignBlockEntity) blockEntity).getText(SignTextSlot.BACK);
         if (!PortSignEntity.isSignPortSign(front) && !PortSignEntity.isSignPortSign(back)) return true;
 
         player.sendOverlayMessage(Component.literal("You do not have permissions to remove port signs."));

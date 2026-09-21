@@ -1,6 +1,8 @@
 # SignPort
 
-A Fabric sign portal mod for quick travel between named anchors.
+A Fabric and NeoForge sign portal mod for quick travel between named anchors.
+
+SignPort 2.3.2 targets Minecraft Java Edition 26.3 and Java 25. Use the jar for your loader: Fabric (with Fabric API for 26.3) or NeoForge. Minecraft 26.2 requires the previous SignPort release.
 
 Original project by [approved](https://github.com/approved).
 
