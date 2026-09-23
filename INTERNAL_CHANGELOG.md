@@ -4,6 +4,7 @@ Internal repo, build, workflow, and release-process changes are documented here.
 
 ## Unreleased
 
+- Updated Gradle, JUnit, the compile-only BlueMap API, and pinned GitHub Actions; grouped weekly Dependabot version updates by ecosystem.
 - Added required Client/Server environment metadata to CurseForge uploads and made CurseForge retries reuse the original GitHub release jars.
 
 ## 2.3.2+mc26.3 - 2026-09-21
